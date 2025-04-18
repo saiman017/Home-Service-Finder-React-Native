@@ -41,6 +41,8 @@ export default function Login() {
       return;
     }
 
+    console.log("sfdsdf", role);
+
     if (isAuthenticated && accessToken && role?.toLowerCase() == "customer") {
       dispatch(clearEmail());
       dispatch(serviceProviderClearEmail());
@@ -63,7 +65,7 @@ export default function Login() {
       console.log("sass", role);
 
       console.log("User authenticated, redirecting to home...");
-      router.replace("/(serviceProvider)/home");
+      router.replace("/(serviceProvider)/(tab)/home");
       return;
     }
 

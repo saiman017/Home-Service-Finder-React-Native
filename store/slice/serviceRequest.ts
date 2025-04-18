@@ -375,6 +375,43 @@ export const getRequestsByCategory = createAsyncThunk(
   }
 );
 
+// Cancel service request thunk
+export const cancelServiceRequest = createAsyncThunk(
+  "serviceRequest/cancel",
+  async (
+    { requestId, customerId }: { requestId: string; customerId: string },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const response = await getAxiosInstance().put(
+        `/serviceRequest/${requestId}/cancel`,
+        customerId
+      );
+
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to cancel service request";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      dispatch(setMessage({ data: "Service request cancelled successfully!" }));
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to cancel service request";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Get service request by ID
 export const getServiceRequestById = createAsyncThunk(
   "serviceRequest/getById",
@@ -477,6 +514,21 @@ const serviceRequestSlice = createSlice({
         state.currentRequest = action.payload;
       })
       .addCase(getServiceRequestById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(cancelServiceRequest.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(cancelServiceRequest.fulfilled, (state) => {
+        state.isLoading = false;
+        state.success = true;
+        if (state.currentRequest) {
+          state.currentRequest.status = "CANCELLED";
+        }
+      })
+      .addCase(cancelServiceRequest.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
