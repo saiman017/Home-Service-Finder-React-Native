@@ -249,6 +249,7 @@ const getAxiosInstance = () => {
         "/auth/login",
         "/auth/register",
         "/auth/verify-otp",
+        "/serviceCategory",
       ];
       if (publicEndpoints.some((endpoint) => config.url?.includes(endpoint))) {
         return config;
@@ -316,3 +317,139 @@ const getAxiosInstance = () => {
 };
 
 export { getAxiosInstance };
+// import axios from "axios";
+// import { Platform } from "react-native";
+// import { jwtDecode, JwtPayload } from "jwt-decode";
+// import { router } from "expo-router";
+
+// // Determine API base URL based on the platform
+// const getApiUrl = () => {
+//   if (Platform.OS === "android") {
+//     return "http://10.0.2.2:5039/api"; // Android emulator
+//   } else if (Platform.OS === "ios") {
+//     return "http://localhost:5039/api"; // iOS simulator
+//   } else {
+//     // You can replace this with your dev machine's IP for real devices
+//     return "http://192.168.18.243:5039/api"; // Web or fallback
+//   }
+// };
+
+// // Define a type that extends JwtPayload to ensure exp property exists
+// interface DecodedToken extends JwtPayload {
+//   exp: number;
+// }
+
+// const isTokenExpired = (token: string): boolean => {
+//   if (!token) return true;
+
+//   try {
+//     const decodedToken = jwtDecode<DecodedToken>(token);
+//     const currentTime = Date.now() / 1000;
+//     return decodedToken.exp < currentTime;
+//   } catch (error) {
+//     console.error("Error decoding token:", error);
+//     return true;
+//   }
+// };
+
+// const getStoreAndActions = () => {
+//   const storeModule = require("../store/store");
+//   const authModule = require("../store/slice/auth");
+
+//   return {
+//     store: storeModule.store,
+//     logout: authModule.logout,
+//   };
+// };
+
+// const handleLogout = () => {
+//   const { store, logout } = getStoreAndActions();
+//   store.dispatch(logout());
+//   router.replace("/(auth)/login");
+//   console.log("User logged out due to token expiration");
+// };
+
+// const getAxiosInstance = () => {
+//   const baseURL = getApiUrl();
+
+//   const instance = axios.create({
+//     baseURL,
+//     timeout: 10000,
+//     headers: {
+//       "Content-Type": "application/json",
+//       Accept: "application/json",
+//     },
+//   });
+
+//   instance.interceptors.request.use(
+//     (config) => {
+//       console.log("Making request to:", config.url);
+//       const publicEndpoints = [
+//         "/auth/login",
+//         "/auth/register",
+//         "/auth/verify-otp",
+//       ];
+
+//       if (publicEndpoints.some((endpoint) => config.url?.includes(endpoint))) {
+//         return config;
+//       }
+
+//       const { store } = getStoreAndActions();
+//       const { accessToken } = store.getState().auth;
+
+//       if (accessToken) {
+//         if (isTokenExpired(accessToken)) {
+//           console.log("Token expired, logging out user");
+//           handleLogout();
+//           return Promise.reject(new Error("Authentication token expired"));
+//         } else {
+//           config.headers["Authorization"] = `Bearer ${accessToken}`;
+//         }
+//       } else {
+//         console.log("No authentication token found");
+//         if (!publicEndpoints.includes(config.url || "")) {
+//           handleLogout();
+//           return Promise.reject(new Error("No authentication token"));
+//         }
+//       }
+
+//       return config;
+//     },
+//     (error) => {
+//       console.error("Request interceptor error:", error);
+//       return Promise.reject(error);
+//     }
+//   );
+
+//   instance.interceptors.response.use(
+//     (response) => {
+//       console.log(
+//         `Response from ${response.config.url}: Status ${response.status}`
+//       );
+//       return response;
+//     },
+//     (error) => {
+//       if (error.response) {
+//         console.error(
+//           `Error ${error.response.status} from ${error.config?.url}:`,
+//           error.response.data
+//         );
+
+//         if (error.response.status === 401) {
+//           console.log("Received 401 Unauthorized response, logging out");
+//           handleLogout();
+//         }
+//       } else if (error.request) {
+//         console.error("No response received:", error.request);
+//       } else {
+//         console.error("Request error:", error.message);
+//       }
+
+//       return Promise.reject(error);
+//     }
+//   );
+
+//   return instance;
+// };
+
+// export { getAxiosInstance };

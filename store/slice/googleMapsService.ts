@@ -157,6 +157,7 @@
 
 // src/services/googleMapsService.ts
 import { getAxiosInstance } from "@/axios/axiosinstance";
+import axios from "axios";
 
 // Define your Google Maps API key
 const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
@@ -177,7 +178,6 @@ export const googleMapsService = {
    */
   async fetchAddressSuggestions(query: string): Promise<LocationData[]> {
     try {
-      const axios = getAxiosInstance();
       // Use Google Places Autocomplete API for address suggestions
       const res = await axios.get(
         `https://maps.googleapis.com/maps/api/place/autocomplete/json`,
@@ -267,7 +267,6 @@ export const googleMapsService = {
     postalCode: string;
   }> {
     try {
-      const axios = getAxiosInstance();
       const res = await axios.get(
         `https://maps.googleapis.com/maps/api/geocode/json`,
         {

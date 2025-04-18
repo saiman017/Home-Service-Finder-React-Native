@@ -443,8 +443,9 @@ export default function LocationSelectScreen() {
         suggestions.length > 0 ? (
           <FlatList
             data={suggestions}
-            keyExtractor={(item) =>
-              item.userId?.toString() || `${item.latitude}-${item.longitude}`
+            keyExtractor={(item, index) =>
+              item.userId?.toString() ||
+              `${item.latitude}-${item.longitude}-${index}`
             }
             renderItem={({ item }) => renderLocationItem({ item })}
             ListHeaderComponent={

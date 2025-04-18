@@ -18,7 +18,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import MapView, { Marker } from "react-native-maps";
-import { getServiceRequestById } from "@/store/slice/serviceRequest";
+import {
+  getServiceRequestById,
+  cancelServiceRequest,
+  resetServiceRequestState,
+} from "@/store/slice/serviceRequest";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 300;
@@ -46,6 +50,9 @@ export default function AfterRequestService() {
       dispatch(getServiceRequestById(serviceRequestId));
     }
   }, [serviceRequestId, currentRequest, dispatch]);
+
+  console.log("service request iD", serviceRequestId);
+  console.log("current", serviceRequestId);
 
   useEffect(() => {
     if (requestError) {
@@ -124,12 +131,9 @@ export default function AfterRequestService() {
     })
   ).current;
 
-  const handleCancelRequest = () => {
-    if (!serviceRequestId) {
-      Alert.alert("Error", "No service request found to cancel");
-      return;
-    }
+  console.log(currentRequest?.id);
 
+  const handleCancelRequest = () => {
     Alert.alert(
       "Cancel Request",
       "Are you sure you want to cancel this service request?",
@@ -139,19 +143,33 @@ export default function AfterRequestService() {
           text: "Yes",
           style: "destructive",
           onPress: () => {
-            // dispatch(cancelServiceRequest(serviceRequestId))
-            //   .unwrap()
-            //   .then(() => {
-            //     Alert.alert(
-            //       "Success",
-            //       "Service request cancelled successfully"
-            //     );
-            //     router.replace("/");
-            //   })
-            //   .catch((error: any) => {
-            //     Alert.alert("Error", error);
-            //   });
-            router.replace("/(tabs)/home");
+            const requestId = currentRequest?.id;
+            const customerId = currentRequest?.customerId;
+
+            if (!customerId) {
+              Alert.alert("Error", "Customer ID not found");
+              return;
+            }
+
+            dispatch(
+              cancelServiceRequest({
+                requestId,
+                customerId,
+              })
+            )
+              .unwrap()
+              .then(() => {
+                Alert.alert(
+                  "Success",
+                  "Service request cancelled successfully"
+                );
+
+                router.replace("/(tabs)/home");
+                dispatch(resetServiceRequestState());
+              })
+              .catch((error: any) => {
+                Alert.alert("Error", error);
+              });
           },
         },
       ]
@@ -272,38 +290,6 @@ export default function AfterRequestService() {
     </SafeAreaView>
   );
 }
-
-// Add the cancelServiceRequest thunk to serviceRequest.ts slice
-// export const cancelServiceRequest = createAsyncThunk(
-//   "serviceRequest/cancel",
-//   async (requestId: string, { rejectWithValue, dispatch }) => {
-//     try {
-//       const response = await getAxiosInstance().delete(
-//         `/serviceRequest/${requestId}`
-//       );
-//       if (!response.data.success || response.data.code >= 400) {
-//         const errorMessage =
-//           response.data.data ||
-//           response.data.message ||
-//           "Failed to cancel service request";
-//         dispatch(setMessage({ data: errorMessage }));
-//         return rejectWithValue(errorMessage);
-//       }
-//
-//       dispatch(setMessage({ data: "Service request cancelled successfully!" }));
-//       return response.data;
-//     } catch (error: any) {
-//       const message =
-//         error.response?.data?.data ||
-//         error.response?.data?.message ||
-//         error.message ||
-//         "Failed to cancel service request";
-//
-//       dispatch(setMessage({ data: message }));
-//       return rejectWithValue(message);
-//     }
-//   }
-// );
 
 const styles = StyleSheet.create({
   container: {

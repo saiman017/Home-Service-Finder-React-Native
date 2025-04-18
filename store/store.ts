@@ -12,6 +12,7 @@ import userReducer from "./slice/user";
 import locationReducer from "./slice/location";
 import serviceListReducer from "./slice/serviceList";
 import serviceRequestReducer from "./slice/serviceRequest";
+import serviceProviderReducer from "./slice/serviceProvider";
 
 const persistConfig = {
   key: "root",
@@ -30,6 +31,7 @@ const rootReducer = combineReducers({
   location: locationReducer,
   serviceList: serviceListReducer,
   serviceRequest: serviceRequestReducer,
+  serviceProvider: serviceProviderReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
