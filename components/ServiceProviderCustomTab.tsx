@@ -4,11 +4,15 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import * as Icons from "phosphor-react-native";
 import { verticalScale } from "react-native-size-matters";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Ionicons,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
 
 type TabIconRenderer = (isFocused: boolean) => React.ReactNode;
 
-function CustomTabBar(props: any) {
+function ServiceProviderCustomTabBar(props: any) {
   const { state, descriptors, navigation } = props;
 
   const tabbarIcons: Record<string, TabIconRenderer> = {
@@ -19,7 +23,14 @@ function CustomTabBar(props: any) {
         color={isFocused ? "#3F63C7" : "#808080"}
       />
     ),
-    history: (isFocused: boolean) => (
+    customerRequest: (isFocused: boolean) => (
+      <MaterialIcons
+        name={isFocused ? "list-alt" : "list-alt"}
+        size={verticalScale(23)}
+        color={isFocused ? "#3F63C7" : "#808080"}
+      />
+    ),
+    offerDetail: (isFocused: boolean) => (
       <Ionicons
         name={isFocused ? "time" : "time-outline"}
         size={verticalScale(23)}
@@ -81,10 +92,10 @@ function CustomTabBar(props: any) {
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: "row",
-    height: 60,
+    height: 70,
     backgroundColor: "#FFFFFF",
     paddingBottom: 10,
-    paddingTop: 5,
+    paddingTop: 10,
     elevation: 5,
     borderTopWidth: 1,
     borderColor: "#EEEEEE",
@@ -102,4 +113,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CustomTabBar;
+export default ServiceProviderCustomTabBar;

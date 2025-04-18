@@ -74,7 +74,6 @@ const serviceCategorySlice = createSlice({
   },
 });
 
-// Export actions and reducer
 export const { resetServiceCategoryState, setSelectedCategoryId } =
   serviceCategorySlice.actions;
 export default serviceCategorySlice.reducer;
