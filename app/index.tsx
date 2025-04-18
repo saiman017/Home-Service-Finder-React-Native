@@ -21,11 +21,12 @@ export default function Index() {
 
   // Convert role to lowercase for case-insensitive comparison
   const roleLowerCase = role ? role.toLowerCase() : "";
+  console.log(role);
 
   if (isAuthenticated && roleLowerCase === "customer") {
     return <Redirect href="/(tabs)/home" />;
   } else if (isAuthenticated && roleLowerCase === "serviceprovider") {
-    return <Redirect href="/(serviceProvider)/home" />;
+    return <Redirect href="/(serviceProvider)/(tab)/home" />;
   } else if (!isAuthenticated) {
     return <Redirect href="/(auth)/Landing" />;
   } else {
