@@ -1,0 +1,393 @@
+// import { StyleSheet } from "react-native";
+
+// export const serviceCategoryStyles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: "white",
+//   },
+//   scrollView: {
+//     flex: 1,
+//   },
+//   inner: {
+//     flex: 1,
+//     padding: 24,
+//   },
+//   header: {
+//     alignItems: "center",
+//     marginBottom: 40,
+//     marginTop: 20,
+//   },
+//   backButton: {
+//     position: "absolute",
+//     left: 0,
+//     top: 0,
+//     padding: 8,
+//   },
+//   title: {
+//     fontSize: 30,
+//     fontWeight: "bold",
+//     color: "#000",
+//     marginBottom: 8,
+//     marginTop: 40,
+//   },
+//   subtitle: {
+//     fontSize: 14,
+//     color: "#808080",
+//     fontWeight: "500",
+//   },
+//   form: {
+//     marginBottom: 24,
+//   },
+//   rowContainer: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//   },
+//   columnContainer: {
+//     flex: 1,
+//     marginHorizontal: 4,
+//   },
+//   label: {
+//     marginBottom: 8,
+//     color: "#808080",
+//   },
+//   input: {
+//     height: 48,
+//     borderWidth: 1,
+//     borderColor: "#dedede",
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     backgroundColor: "#ffffff",
+//   },
+//   inputError: {
+//     borderColor: "#ff4d4f",
+//   },
+//   errorText: {
+//     color: "#ff4d4f",
+//     marginTop: 4,
+//     fontSize: 12,
+//   },
+//   phoneContainer: {
+//     flexDirection: "row",
+//     marginBottom: 6,
+//   },
+//   phoneInput: {
+//     flex: 1,
+//     height: 48,
+//     borderWidth: 1,
+//     borderColor: "#dedede",
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     fontSize: 16,
+//     backgroundColor: "#ffffff",
+//   },
+//   passwordContainer: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     borderWidth: 1,
+//     borderColor: "#dedede",
+//     borderRadius: 10,
+//     backgroundColor: "#ffffff",
+//     paddingRight: 12,
+//   },
+//   passwordInput: {
+//     flex: 1,
+//     height: 48,
+//     paddingHorizontal: 12,
+//   },
+//   registerButton: {
+//     height: 55,
+//     backgroundColor: "#3F63C7",
+//     borderRadius: 10,
+//     justifyContent: "center",
+//     alignItems: "center",
+//     marginTop: 30,
+//   },
+//   registerButtonText: {
+//     color: "#fff",
+//     fontSize: 16,
+//     fontWeight: "600",
+//   },
+//   footer: {
+//     marginTop: 20,
+//     flexDirection: "row",
+//     justifyContent: "center",
+//   },
+//   footerText: {
+//     color: "#808080",
+//   },
+//   signupText: {
+//     color: "#3F63C7",
+//     fontWeight: "500",
+//     marginLeft: 5,
+//   },
+//   datePickerButton: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//   },
+//   dateText: {
+//     fontSize: 16,
+//     color: "#000",
+//   },
+//   placeholderText: {
+//     fontSize: 16,
+//     color: "#9e9e9e",
+//   },
+//   selectContainer: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//   },
+//   dropdownContainer: {
+//     position: "relative",
+//     zIndex: 1000,
+//   },
+//   dropdownList: {
+//     position: "absolute",
+//     top: 48,
+//     left: 0,
+//     right: 0,
+//     backgroundColor: "white",
+//     borderWidth: 1,
+//     borderColor: "#dedede",
+//     borderRadius: 10,
+//     marginTop: 4,
+//     zIndex: 1000,
+//     elevation: 5,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 4,
+//   },
+//   dropdownItem: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     paddingVertical: 12,
+//     paddingHorizontal: 16,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#f5f5f5",
+//   },
+//   dropdownItemText: {
+//     fontSize: 16,
+//     color: "#000",
+//   },
+//   selectedItemText: {
+//     color: "#3F63C7",
+//     fontWeight: "500",
+//   },
+//   optionItem: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     padding: 16,
+//     borderBottomWidth: 1,
+//     borderBottomColor: "#f0f0f0",
+//   },
+//   optionText: {
+//     fontSize: 16,
+//     color: "#000",
+//   },
+// });
+import { StyleSheet } from "react-native";
+
+export const serviceCategoryStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  inner: {
+    flex: 1,
+    padding: 24,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 40,
+    marginTop: 20,
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    padding: 8,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#000",
+    marginBottom: 8,
+    marginTop: 40,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#808080",
+    fontWeight: "500",
+  },
+  form: {
+    marginBottom: 24,
+  },
+  rowContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  columnContainer: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  label: {
+    marginBottom: 8,
+    color: "#808080",
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    backgroundColor: "#ffffff",
+  },
+  textArea: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: "#ffffff",
+    fontSize: 16,
+  },
+  inputError: {
+    borderColor: "#ff4d4f",
+  },
+  errorText: {
+    color: "#ff4d4f",
+    marginTop: 4,
+    fontSize: 12,
+  },
+  phoneContainer: {
+    flexDirection: "row",
+    marginBottom: 6,
+  },
+  phoneInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    backgroundColor: "#ffffff",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    paddingRight: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 12,
+  },
+  registerButton: {
+    height: 55,
+    backgroundColor: "#3F63C7",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 30,
+  },
+  registerButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  footer: {
+    marginTop: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  footerText: {
+    color: "#808080",
+  },
+  signupText: {
+    color: "#3F63C7",
+    fontWeight: "500",
+    marginLeft: 5,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dateText: {
+    fontSize: 16,
+    color: "#000",
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: "#9e9e9e",
+  },
+  selectContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  dropdownContainer: {
+    position: "relative",
+    zIndex: 1000,
+  },
+  dropdownList: {
+    position: "absolute",
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#dedede",
+    borderRadius: 10,
+    marginTop: 4,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: "#000",
+  },
+  selectedItemText: {
+    color: "#3F63C7",
+    fontWeight: "500",
+  },
+  optionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  optionText: {
+    fontSize: 16,
+    color: "#000",
+  },
+});
