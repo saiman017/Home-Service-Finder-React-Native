@@ -259,14 +259,37 @@ interface ServiceRequestData {
   longitude?: number;
 }
 
+interface ServiceRequestResponseDto {
+  id: string;
+  customerId: string;
+  customerName: string;
+  locationId: string;
+  serviceCategoryId: string;
+  serviceCategoryName: string;
+  description: string;
+  createdAt: string;
+  expiresAt: string;
+  status: string;
+  serviceListIds: string[];
+  serviceListNames: string[];
+  locationAddress: string;
+  locationCity: string;
+  locationPostalCode: string;
+  locationLatitude: number;
+  locationLongitude: number;
+}
+
 interface ServiceRequestState {
   isLoading: boolean;
   error: string | null;
   success: boolean;
   serviceRequestId: string | null;
-  customerRequests: any[];
-  requestsByCategory: any[];
-  currentRequest: any | null;
+  customerRequests: ServiceRequestResponseDto[];
+  requestsByCategory: ServiceRequestResponseDto[];
+  pendingRequests: ServiceRequestResponseDto[];
+  activeRequests: ServiceRequestResponseDto[];
+  allRequests: ServiceRequestResponseDto[];
+  currentRequest: ServiceRequestResponseDto | null;
 }
 
 // Initial state
@@ -277,6 +300,9 @@ const initialState: ServiceRequestState = {
   serviceRequestId: null,
   customerRequests: [],
   requestsByCategory: [],
+  pendingRequests: [],
+  activeRequests: [],
+  allRequests: [],
   currentRequest: null,
 };
 
@@ -306,6 +332,35 @@ export const createServiceRequest = createAsyncThunk(
         error.response?.data?.message ||
         error.message ||
         "Failed to create service request";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Get all service requests
+export const getAllServiceRequests = createAsyncThunk(
+  "serviceRequest/getAll",
+  async (_, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get("/serviceRequest");
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to fetch service requests";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch service requests";
 
       dispatch(setMessage({ data: message }));
       return rejectWithValue(message);
@@ -344,6 +399,68 @@ export const getRequestsByCustomerId = createAsyncThunk(
   }
 );
 
+// Get active requests by customer ID
+export const getActiveRequestsByCustomerId = createAsyncThunk(
+  "serviceRequest/getActiveByCustomer",
+  async (customerId: string, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get(
+        `/serviceRequest/customer/${customerId}/active`
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to fetch active customer requests";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch active customer requests";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Get pending requests by customer ID
+export const getPendingRequestsByCustomerId = createAsyncThunk(
+  "serviceRequest/getPendingByCustomer",
+  async (customerId: string, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get(
+        `/serviceRequest/customer/${customerId}/pending`
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to fetch pending customer requests";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch pending customer requests";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Get requests by category ID
 export const getRequestsByCategory = createAsyncThunk(
   "serviceRequest/getByCategory",
@@ -368,6 +485,105 @@ export const getRequestsByCategory = createAsyncThunk(
         error.response?.data?.message ||
         error.message ||
         "Failed to fetch category requests";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const getPendingRequestsByCategory = createAsyncThunk(
+  "serviceRequest/getPendingByCategory",
+  async (categoryId: string, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get(
+        `/serviceRequest/${categoryId}/pending`
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to fetch pending category requests";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch pending category requests";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Get service request by ID
+export const getServiceRequestById = createAsyncThunk(
+  "serviceRequest/getById",
+  async (requestId: string, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get(
+        `/serviceRequest/${requestId}`
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to fetch service request";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch service request";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Update service request status
+export const updateServiceRequestStatus = createAsyncThunk(
+  "serviceRequest/updateStatus",
+  async (
+    { requestId, status }: { requestId: string; status: string },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const response = await getAxiosInstance().put(
+        `/serviceRequest/${requestId}/status`,
+        status
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to update service request status";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      dispatch(
+        setMessage({ data: "Service request status updated successfully!" })
+      );
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update service request status";
 
       dispatch(setMessage({ data: message }));
       return rejectWithValue(message);
@@ -412,30 +628,31 @@ export const cancelServiceRequest = createAsyncThunk(
   }
 );
 
-// Get service request by ID
-export const getServiceRequestById = createAsyncThunk(
-  "serviceRequest/getById",
-  async (requestId: string, { rejectWithValue, dispatch }) => {
+// Delete service requests by customer ID
+export const deleteRequestsByCustomerId = createAsyncThunk(
+  "serviceRequest/deleteByCustomer",
+  async (customerId: string, { rejectWithValue, dispatch }) => {
     try {
-      const response = await getAxiosInstance().get(
-        `/serviceRequest/${requestId}`
+      const response = await getAxiosInstance().delete(
+        `/serviceRequest/customer/${customerId}`
       );
       if (!response.data.success || response.data.code >= 400) {
         const errorMessage =
           response.data.data ||
           response.data.message ||
-          "Failed to fetch service request";
+          "Failed to delete customer requests";
         dispatch(setMessage({ data: errorMessage }));
         return rejectWithValue(errorMessage);
       }
 
-      return response.data.data;
+      dispatch(setMessage({ data: "Service requests deleted successfully!" }));
+      return customerId;
     } catch (error: any) {
       const message =
         error.response?.data?.data ||
         error.response?.data?.message ||
         error.message ||
-        "Failed to fetch service request";
+        "Failed to delete customer requests";
 
       dispatch(setMessage({ data: message }));
       return rejectWithValue(message);
@@ -453,11 +670,15 @@ const serviceRequestSlice = createSlice({
       state.error = null;
       state.success = false;
       state.serviceRequestId = null;
+      state.currentRequest = null;
     },
     clearServiceRequestData: (state) => {
       state.currentRequest = null;
       state.customerRequests = [];
       state.requestsByCategory = [];
+      state.pendingRequests = [];
+      state.activeRequests = [];
+      state.allRequests = [];
     },
   },
   extraReducers: (builder) => {
@@ -478,6 +699,19 @@ const serviceRequestSlice = createSlice({
         state.error = action.payload as string;
         state.success = false;
       })
+      // Get all service requests
+      .addCase(getAllServiceRequests.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getAllServiceRequests.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.allRequests = action.payload;
+      })
+      .addCase(getAllServiceRequests.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
       // Get requests by customer
       .addCase(getRequestsByCustomerId.pending, (state) => {
         state.isLoading = true;
@@ -488,6 +722,32 @@ const serviceRequestSlice = createSlice({
         state.customerRequests = action.payload;
       })
       .addCase(getRequestsByCustomerId.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Get active requests by customer
+      .addCase(getActiveRequestsByCustomerId.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getActiveRequestsByCustomerId.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.activeRequests = action.payload;
+      })
+      .addCase(getActiveRequestsByCustomerId.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Get pending requests by customer
+      .addCase(getPendingRequestsByCustomerId.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getPendingRequestsByCustomerId.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.pendingRequests = action.payload;
+      })
+      .addCase(getPendingRequestsByCustomerId.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
@@ -504,6 +764,19 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      //pending request by category
+      .addCase(getPendingRequestsByCategory.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getPendingRequestsByCategory.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.pendingRequests = action.payload;
+      })
+      .addCase(getPendingRequestsByCategory.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
       // Get service request by ID
       .addCase(getServiceRequestById.pending, (state) => {
         state.isLoading = true;
@@ -517,6 +790,23 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      // Update service request status
+      .addCase(updateServiceRequestStatus.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateServiceRequestStatus.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.success = true;
+        if (state.currentRequest) {
+          state.currentRequest.status = action.meta.arg.status;
+        }
+      })
+      .addCase(updateServiceRequestStatus.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Cancel service request
       .addCase(cancelServiceRequest.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -529,6 +819,26 @@ const serviceRequestSlice = createSlice({
         }
       })
       .addCase(cancelServiceRequest.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Delete requests by customer
+      .addCase(deleteRequestsByCustomerId.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteRequestsByCustomerId.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.success = true;
+        state.customerRequests = [];
+        state.activeRequests = [];
+        state.pendingRequests = [];
+        // Also filter out deleted customer requests from allRequests if they exist
+        state.allRequests = state.allRequests.filter(
+          (request) => request.customerId !== action.payload
+        );
+      })
+      .addCase(deleteRequestsByCustomerId.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

@@ -30,7 +30,7 @@ function ServiceProviderCustomTabBar(props: any) {
         color={isFocused ? "#3F63C7" : "#808080"}
       />
     ),
-    offerDetail: (isFocused: boolean) => (
+    providerOffersList: (isFocused: boolean) => (
       <Ionicons
         name={isFocused ? "time" : "time-outline"}
         size={verticalScale(23)}

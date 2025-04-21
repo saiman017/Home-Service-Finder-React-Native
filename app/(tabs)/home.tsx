@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "@/store/slice/auth";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -19,6 +18,10 @@ import {
 } from "@/store/slice/serviceCategory";
 import { AppDispatch, RootState } from "@/store/store"; // Import the correct dispatch type
 import { fetchLocation } from "@/store/slice/location";
+import {
+  getPendingRequestsByCustomerId,
+  getServiceRequestById,
+} from "@/store/slice/serviceRequest";
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
@@ -27,6 +30,8 @@ export default function Home() {
   );
   const { currentLocation } = useSelector((state: RootState) => state.location);
   const { userId } = useSelector((state: RootState) => state.auth);
+
+  console.log("dfadf", userId);
 
   useEffect(() => {
     dispatch(fetchServiceCategories());
@@ -45,15 +50,39 @@ export default function Home() {
   //   router.push("/(users)/(RequestService)/RequestService");
   // };
 
-  const navigateToService = (categoryId: string, categoryName: string) => {
-    dispatch(setSelectedCategoryId(categoryId));
-    router.push({
-      pathname: "/(users)/(RequestService)/RequestService",
-      params: {
-        categoryId,
-        categoryName,
-      },
-    });
+  const navigateToService = async (
+    categoryId: string,
+    categoryName: string
+  ) => {
+    try {
+      if (userId) {
+        // Check if there's a pending request
+        const pendingRequest = await dispatch(
+          getPendingRequestsByCustomerId(userId)
+        ).unwrap();
+
+        if (pendingRequest) {
+          // If a pending request exists, fetch its full details
+          await dispatch(getServiceRequestById(pendingRequest.id)).unwrap();
+
+          // Navigate to the AfterRequestService page
+          router.push("/AfterRequestService");
+          return;
+        }
+      }
+
+      // No pending request found — go to RequestService page
+      dispatch(setSelectedCategoryId(categoryId));
+      router.push({
+        pathname: "/(users)/(RequestService)/RequestService",
+        params: {
+          categoryId,
+          categoryName,
+        },
+      });
+    } catch (error) {
+      console.error("Error checking pending requests:", error);
+    }
   };
 
   const displayAddress = currentLocation

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,23 +10,31 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
-import { getRequestsByCategory } from "@/store/slice/serviceRequest";
+import { getPendingRequestsByCategory } from "@/store/slice/serviceRequest";
 import { fetchServiceProviderById } from "@/store/slice/serviceProvider";
 import Header from "@/components/Header";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { formatToNepalTime } from "@/utils/formattoNepalTime";
 
-// Define interfaces for type safety
+// Service Request type definition
 interface ServiceRequest {
   id: string;
-  serviceCategory: string;
   serviceCategoryId: string;
-
+  serviceCategoryName: string;
   status: string;
-  address: string;
+  locationAddress: string;
+  locationCity: string;
+  locationId: string;
+  locationLatitude: number;
+  locationLongitude: number;
+  locationPostalCode: string;
   createdAt: string;
+  expiresAt: string;
+  serviceListIds: string[];
   serviceListNames: string[];
   description: string;
+  customerId: string;
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
@@ -34,57 +42,94 @@ interface ServiceRequest {
 
 export default function CustomerRequest() {
   const dispatch = useDispatch<AppDispatch>();
-  const { requestsByCategory, isLoading: requestsLoading } = useSelector(
+
+  const { pendingRequests, isLoading: requestsLoading } = useSelector(
     (state: RootState) => state.serviceRequest
   );
-  // Fix: correctly access serviceProvider state
   const { selectedProvider, isLoading: providerLoading } = useSelector(
     (state: RootState) => state.serviceProvider
   );
+  const { requestsWithOffers } = useSelector(
+    (state: RootState) => state.serviceOffer
+  );
+  const { userId, role, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
 
-  console.log("dfsf", selectedProvider);
-  const { userId, role } = useSelector((state: RootState) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
-  // Load provider details on component mount
+  // Initial service provider fetch
   useEffect(() => {
-    if (role === "serviceProvider" && userId) {
+    if (role === "serviceProvider" && userId && isAuthenticated) {
       dispatch(fetchServiceProviderById(userId));
     }
+
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [dispatch, userId, role]);
 
-  // Set the category ID when provider details are loaded
+  // When provider is available, set category and start polling
   useEffect(() => {
-    if (selectedProvider && selectedProvider.serviceCategoryId) {
-      setCategoryId(selectedProvider.serviceCategoryId);
-      loadRequests(selectedProvider.serviceCategoryId);
+    if (selectedProvider?.serviceCategoryId) {
+      const catId = selectedProvider.serviceCategoryId;
+      setCategoryId(catId);
+      loadRequests(catId);
+
+      const interval = setInterval(() => {
+        loadRequests(catId);
+      }, 10000);
+
+      setPollingInterval(interval);
+
+      return () => clearInterval(interval);
     }
   }, [selectedProvider]);
 
-  const loadRequests = async (catId: string) => {
-    dispatch(getRequestsByCategory(catId));
-  };
+  const loadRequests = useCallback(
+    (catId: string) => {
+      dispatch(getPendingRequestsByCategory(catId));
+    },
+    [dispatch]
+  );
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (categoryId) {
-      await dispatch(getRequestsByCategory(categoryId));
+    if (userId && role === "serviceProvider") {
+      const result = await dispatch(fetchServiceProviderById(userId));
+      const newCatId = result?.payload?.serviceCategoryId;
+      if (newCatId) {
+        setCategoryId(newCatId);
+        await dispatch(getPendingRequestsByCategory(newCatId));
+      }
     }
     setRefreshing(false);
-  };
+  }, [dispatch, userId, role]);
 
-  console.log(categoryId);
+  // Filter requests not offered yet and not expired/cancelled
+  const filteredRequests = pendingRequests?.filter(
+    (req) =>
+      !requestsWithOffers.includes(req.id) &&
+      req.status !== "CANCELLED" &&
+      req.status !== "Expired"
+  );
 
   const handleViewDetails = (requestId: string) => {
-    // router.push(`/(serviceProvider)/requestDetails/${requestId}`);
+    router.push({
+      pathname: "/(serviceProvider)/requestDetails",
+      params: { requestId },
+    });
   };
 
   const renderRequestItem = ({ item }: { item: ServiceRequest }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
         <Text style={styles.requestTitle}>
-          {item.serviceCategory || "Service Request"}
+          {item.serviceCategoryName || "Service Request"}
         </Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{item.status || "NEW"}</Text>
@@ -95,15 +140,14 @@ export default function CustomerRequest() {
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={16} color="#666" />
           <Text style={styles.detailText}>
-            {item.address || "Location not specified"}
+            {item.locationAddress || "Location not specified"}
           </Text>
         </View>
 
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={16} color="#666" />
           <Text style={styles.detailText}>
-            {new Date(item.createdAt).toLocaleDateString() ||
-              "Date not available"}
+            {formatToNepalTime(item.createdAt) || "Date not available"}
           </Text>
         </View>
 
@@ -132,14 +176,14 @@ export default function CustomerRequest() {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F8C52B" />
+          <ActivityIndicator size="large" color="#3F63C7" />
         </View>
       ) : categoryId ? (
-        requestsByCategory && requestsByCategory.length > 0 ? (
+        filteredRequests && filteredRequests.length > 0 ? (
           <FlatList
-            data={requestsByCategory}
+            data={filteredRequests}
             renderItem={renderRequestItem}
-            keyExtractor={(item: ServiceRequest) => item.id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={styles.requestsList}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -269,13 +313,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   viewButton: {
-    backgroundColor: "#F8C52B",
+    backgroundColor: "#3F63C7",
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
   },
   viewButtonText: {
     fontWeight: "600",
-    color: "#000",
+    color: "#ffffff",
   },
 });
