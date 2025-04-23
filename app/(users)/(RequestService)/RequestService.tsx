@@ -1,4 +1,3 @@
-// ✅ No CSS changes; only logic and component fixes/optimizations
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -27,6 +26,7 @@ import {
   createServiceRequest,
   resetServiceRequestState,
 } from "@/store/slice/serviceRequest";
+import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 240;
@@ -49,8 +49,12 @@ export default function ServiceRequestScreen() {
     isLoading: requestLoading,
     error: requestError,
     success: requestSuccess,
+    currentRequest,
   } = useSelector((state: RootState) => state.serviceRequest);
   const { userId } = useSelector((state: RootState) => state.auth);
+
+  // ✅ Use SignalR hook for real-time updates
+  useServiceRequestSignalR(categoryId, currentRequest?.id);
 
   const [panelHeight, setPanelHeight] = useState(PANEL_MIN_HEIGHT);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
@@ -192,7 +196,7 @@ export default function ServiceRequestScreen() {
 
     const requestPayload = {
       customerId: userId,
-      locationId: userId,
+      locationId: userId, // Replace with actual location ID if needed
       serviceCategoryId: categoryId,
       description: serviceDescription.trim(),
       serviceListIds: selectedServices,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,106 +7,118 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
-import { getRequestsByCategory } from "@/store/slice/serviceRequest";
+import { getPendingRequestsByCategory } from "@/store/slice/serviceRequest";
 import { fetchServiceProviderById } from "@/store/slice/serviceProvider";
 import Header from "@/components/Header";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
-// Define interfaces for type safety
-interface ServiceRequest {
-  id: string;
-  serviceCategory: string;
-  serviceCategoryId: string;
-
-  status: string;
-  address: string;
-  createdAt: string;
-  serviceListNames: string[];
-  description: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
-}
+import { formatToNepalTime } from "@/utils/formattoNepalTime";
+import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 
 export default function CustomerRequest() {
   const dispatch = useDispatch<AppDispatch>();
-  const { requestsByCategory, isLoading: requestsLoading } = useSelector(
+  const { pendingRequests, isLoading: requestsLoading } = useSelector(
     (state: RootState) => state.serviceRequest
   );
-  // Fix: correctly access serviceProvider state
   const { selectedProvider, isLoading: providerLoading } = useSelector(
     (state: RootState) => state.serviceProvider
   );
+  const { requestsWithOffers } = useSelector(
+    (state: RootState) => state.serviceOffer
+  );
+  const { userId, role, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
 
-  console.log("dfsf", selectedProvider);
-  const { userId, role } = useSelector((state: RootState) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
-  // Load provider details on component mount
+  const { connected: signalRConnected, connectionError } =
+    useServiceRequestSignalR(categoryId || undefined);
+
   useEffect(() => {
-    if (role === "serviceProvider" && userId) {
+    if (connectionError) {
+      Alert.alert(
+        "Connection Issue",
+        "Real-time updates may be delayed. Please check your internet connection."
+      );
+    }
+  }, [connectionError]);
+
+  useEffect(() => {
+    if (role === "serviceProvider" && userId && isAuthenticated) {
       dispatch(fetchServiceProviderById(userId));
     }
-  }, [dispatch, userId, role]);
+  }, [dispatch, userId, role, isAuthenticated]);
 
-  // Set the category ID when provider details are loaded
   useEffect(() => {
-    if (selectedProvider && selectedProvider.serviceCategoryId) {
-      setCategoryId(selectedProvider.serviceCategoryId);
-      loadRequests(selectedProvider.serviceCategoryId);
+    if (selectedProvider?.serviceCategoryId) {
+      const catId = selectedProvider.serviceCategoryId;
+      setCategoryId(catId);
+      if (!signalRConnected) {
+        dispatch(getPendingRequestsByCategory(catId));
+      }
     }
-  }, [selectedProvider]);
+  }, [selectedProvider, signalRConnected]);
 
-  const loadRequests = async (catId: string) => {
-    dispatch(getRequestsByCategory(catId));
-  };
-
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (categoryId) {
-      await dispatch(getRequestsByCategory(categoryId));
+    if (userId && role === "serviceProvider") {
+      const result = await dispatch(fetchServiceProviderById(userId));
+      const newCatId = result?.payload?.serviceCategoryId;
+      if (newCatId) {
+        setCategoryId(newCatId);
+        if (!signalRConnected) {
+          await dispatch(getPendingRequestsByCategory(newCatId));
+        }
+      }
     }
     setRefreshing(false);
-  };
+  }, [dispatch, userId, role, signalRConnected]);
 
-  console.log(categoryId);
+  const filteredRequests = useMemo(() => {
+    return pendingRequests?.filter(
+      (req) =>
+        !requestsWithOffers.includes(req.id) &&
+        req.status !== "Cancelled" &&
+        req.status !== "Expired"
+    );
+  }, [pendingRequests, requestsWithOffers]);
 
   const handleViewDetails = (requestId: string) => {
-    // router.push(`/(serviceProvider)/requestDetails/${requestId}`);
+    router.push({
+      pathname: "/(serviceProvider)/requestDetails",
+      params: { requestId },
+    });
   };
 
-  const renderRequestItem = ({ item }: { item: ServiceRequest }) => (
+  const renderRequestItem = ({ item }: { item: any }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
         <Text style={styles.requestTitle}>
-          {item.serviceCategory || "Service Request"}
+          {item.serviceCategoryName || "Service Request"}
         </Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{item.status || "NEW"}</Text>
         </View>
       </View>
-
       <View style={styles.requestDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={16} color="#666" />
           <Text style={styles.detailText}>
-            {item.address || "Location not specified"}
+            {item.locationAddress || "Location not specified"}
           </Text>
         </View>
-
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={16} color="#666" />
           <Text style={styles.detailText}>
-            {new Date(item.createdAt).toLocaleDateString() ||
-              "Date not available"}
+            {formatToNepalTime(item.createdAt) || "Date not available"}
           </Text>
         </View>
-
         <View style={styles.servicesList}>
           <Text style={styles.servicesLabel}>Services: </Text>
           <Text style={styles.servicesText}>
@@ -114,7 +126,6 @@ export default function CustomerRequest() {
           </Text>
         </View>
       </View>
-
       <TouchableOpacity
         style={styles.viewButton}
         onPress={() => handleViewDetails(item.id)}
@@ -129,27 +140,48 @@ export default function CustomerRequest() {
   return (
     <View style={styles.container}>
       <Header title="Customer Requests" showBackButton={true} />
-
+      {categoryId && (
+        <View
+          style={[
+            styles.connectionIndicator,
+            { backgroundColor: signalRConnected ? "#E8F5E9" : "#ffeeee" },
+          ]}
+        >
+          <Ionicons
+            name={
+              signalRConnected ? "checkmark-circle-outline" : "wifi-outline"
+            }
+            size={16}
+            color={signalRConnected ? "#2E7D32" : "#777"}
+          />
+          <Text
+            style={[
+              styles.connectionText,
+              { color: signalRConnected ? "#2E7D32" : "#777" },
+            ]}
+          >
+            {signalRConnected
+              ? "Real-time updates enabled"
+              : "Using periodic updates"}
+          </Text>
+        </View>
+      )}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F8C52B" />
+          <ActivityIndicator size="large" color="#3F63C7" />
         </View>
       ) : categoryId ? (
-        requestsByCategory && requestsByCategory.length > 0 ? (
+        filteredRequests && filteredRequests.length > 0 ? (
           <FlatList
-            data={requestsByCategory}
+            data={filteredRequests}
             renderItem={renderRequestItem}
-            keyExtractor={(item: ServiceRequest) => item.id}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={styles.requestsList}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListHeaderComponent={
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>
-                  Available Service Requests
-                </Text>
-              </View>
+              <RefreshControl
+                refreshing={refreshing || isLoading}
+                onRefresh={onRefresh}
+              />
             }
           />
         ) : (
@@ -171,7 +203,6 @@ export default function CustomerRequest() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -269,13 +300,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   viewButton: {
-    backgroundColor: "#F8C52B",
+    backgroundColor: "#3F63C7",
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
   },
   viewButtonText: {
     fontWeight: "600",
-    color: "#000",
+    color: "#ffffff",
+  },
+  connectionIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    marginHorizontal: 15,
+    marginTop: 5,
+    marginBottom: 5,
+    borderRadius: 6,
+  },
+  connectionText: {
+    fontSize: 12,
+    marginLeft: 5,
   },
 });

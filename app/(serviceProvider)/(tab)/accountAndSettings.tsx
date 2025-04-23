@@ -20,6 +20,8 @@ import { router } from "expo-router";
 import { fetchUserById, selectUserById } from "@/store/slice/user";
 import type { AppDispatch, RootState } from "@/store/store";
 import { clearCurrentLocation } from "@/store/slice/location";
+import { resetServiceRequestState } from "@/store/slice/serviceRequest";
+import { resetServiceOfferState } from "@/store/slice/serviceOffer";
 
 export default function AccountAndSettings() {
   const dispatch = useDispatch<AppDispatch>();
@@ -34,6 +36,8 @@ export default function AccountAndSettings() {
 
   const handleLogout = () => {
     dispatch(logout());
+    dispatch(resetServiceRequestState());
+    dispatch(resetServiceOfferState());
     dispatch(clearCurrentLocation());
     router.replace("/(auth)/Landing");
   };

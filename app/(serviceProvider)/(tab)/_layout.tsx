@@ -23,9 +23,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="offerDetail"
+        name="providerOffersList"
         options={{
-          tabBarLabel: "Offer Detail",
+          tabBarLabel: "Offer Request",
         }}
       />
       <Tabs.Screen
