@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
@@ -16,33 +17,10 @@ import Header from "@/components/Header";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { formatToNepalTime } from "@/utils/formattoNepalTime";
-
-// Service Request type definition
-interface ServiceRequest {
-  id: string;
-  serviceCategoryId: string;
-  serviceCategoryName: string;
-  status: string;
-  locationAddress: string;
-  locationCity: string;
-  locationId: string;
-  locationLatitude: number;
-  locationLongitude: number;
-  locationPostalCode: string;
-  createdAt: string;
-  expiresAt: string;
-  serviceListIds: string[];
-  serviceListNames: string[];
-  description: string;
-  customerId: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
-}
+import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 
 export default function CustomerRequest() {
   const dispatch = useDispatch<AppDispatch>();
-
   const { pendingRequests, isLoading: requestsLoading } = useSelector(
     (state: RootState) => state.serviceRequest
   );
@@ -58,44 +36,34 @@ export default function CustomerRequest() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
-    null
-  );
 
-  // Initial service provider fetch
+  const { connected: signalRConnected, connectionError } =
+    useServiceRequestSignalR(categoryId || undefined);
+
+  useEffect(() => {
+    if (connectionError) {
+      Alert.alert(
+        "Connection Issue",
+        "Real-time updates may be delayed. Please check your internet connection."
+      );
+    }
+  }, [connectionError]);
+
   useEffect(() => {
     if (role === "serviceProvider" && userId && isAuthenticated) {
       dispatch(fetchServiceProviderById(userId));
     }
+  }, [dispatch, userId, role, isAuthenticated]);
 
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval);
-    };
-  }, [dispatch, userId, role]);
-
-  // When provider is available, set category and start polling
   useEffect(() => {
     if (selectedProvider?.serviceCategoryId) {
       const catId = selectedProvider.serviceCategoryId;
       setCategoryId(catId);
-      loadRequests(catId);
-
-      const interval = setInterval(() => {
-        loadRequests(catId);
-      }, 10000);
-
-      setPollingInterval(interval);
-
-      return () => clearInterval(interval);
+      if (!signalRConnected) {
+        dispatch(getPendingRequestsByCategory(catId));
+      }
     }
-  }, [selectedProvider]);
-
-  const loadRequests = useCallback(
-    (catId: string) => {
-      dispatch(getPendingRequestsByCategory(catId));
-    },
-    [dispatch]
-  );
+  }, [selectedProvider, signalRConnected]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -104,19 +72,22 @@ export default function CustomerRequest() {
       const newCatId = result?.payload?.serviceCategoryId;
       if (newCatId) {
         setCategoryId(newCatId);
-        await dispatch(getPendingRequestsByCategory(newCatId));
+        if (!signalRConnected) {
+          await dispatch(getPendingRequestsByCategory(newCatId));
+        }
       }
     }
     setRefreshing(false);
-  }, [dispatch, userId, role]);
+  }, [dispatch, userId, role, signalRConnected]);
 
-  // Filter requests not offered yet and not expired/cancelled
-  const filteredRequests = pendingRequests?.filter(
-    (req) =>
-      !requestsWithOffers.includes(req.id) &&
-      req.status !== "CANCELLED" &&
-      req.status !== "Expired"
-  );
+  const filteredRequests = useMemo(() => {
+    return pendingRequests?.filter(
+      (req) =>
+        !requestsWithOffers.includes(req.id) &&
+        req.status !== "Cancelled" &&
+        req.status !== "Expired"
+    );
+  }, [pendingRequests, requestsWithOffers]);
 
   const handleViewDetails = (requestId: string) => {
     router.push({
@@ -125,7 +96,7 @@ export default function CustomerRequest() {
     });
   };
 
-  const renderRequestItem = ({ item }: { item: ServiceRequest }) => (
+  const renderRequestItem = ({ item }: { item: any }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
         <Text style={styles.requestTitle}>
@@ -135,7 +106,6 @@ export default function CustomerRequest() {
           <Text style={styles.statusText}>{item.status || "NEW"}</Text>
         </View>
       </View>
-
       <View style={styles.requestDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={16} color="#666" />
@@ -143,14 +113,12 @@ export default function CustomerRequest() {
             {item.locationAddress || "Location not specified"}
           </Text>
         </View>
-
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={16} color="#666" />
           <Text style={styles.detailText}>
             {formatToNepalTime(item.createdAt) || "Date not available"}
           </Text>
         </View>
-
         <View style={styles.servicesList}>
           <Text style={styles.servicesLabel}>Services: </Text>
           <Text style={styles.servicesText}>
@@ -158,7 +126,6 @@ export default function CustomerRequest() {
           </Text>
         </View>
       </View>
-
       <TouchableOpacity
         style={styles.viewButton}
         onPress={() => handleViewDetails(item.id)}
@@ -173,7 +140,32 @@ export default function CustomerRequest() {
   return (
     <View style={styles.container}>
       <Header title="Customer Requests" showBackButton={true} />
-
+      {categoryId && (
+        <View
+          style={[
+            styles.connectionIndicator,
+            { backgroundColor: signalRConnected ? "#E8F5E9" : "#ffeeee" },
+          ]}
+        >
+          <Ionicons
+            name={
+              signalRConnected ? "checkmark-circle-outline" : "wifi-outline"
+            }
+            size={16}
+            color={signalRConnected ? "#2E7D32" : "#777"}
+          />
+          <Text
+            style={[
+              styles.connectionText,
+              { color: signalRConnected ? "#2E7D32" : "#777" },
+            ]}
+          >
+            {signalRConnected
+              ? "Real-time updates enabled"
+              : "Using periodic updates"}
+          </Text>
+        </View>
+      )}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3F63C7" />
@@ -186,14 +178,10 @@ export default function CustomerRequest() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.requestsList}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            ListHeaderComponent={
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>
-                  Available Service Requests
-                </Text>
-              </View>
+              <RefreshControl
+                refreshing={refreshing || isLoading}
+                onRefresh={onRefresh}
+              />
             }
           />
         ) : (
@@ -215,7 +203,6 @@ export default function CustomerRequest() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -321,5 +308,19 @@ const styles = StyleSheet.create({
   viewButtonText: {
     fontWeight: "600",
     color: "#ffffff",
+  },
+  connectionIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    marginHorizontal: 15,
+    marginTop: 5,
+    marginBottom: 5,
+    borderRadius: 6,
+  },
+  connectionText: {
+    fontSize: 12,
+    marginLeft: 5,
   },
 });

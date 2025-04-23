@@ -1,51 +1,33 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { router } from "expo-router";
-import { useDispatch } from "react-redux";
-import { AppDispatch } from "@/store/store";
-import { Ionicons } from "@expo/vector-icons";
+import { TouchableOpacity, Text, StyleSheet } from "react-native";
 
-// First, let's add a "Start Work" button component to the OfferDetails screen
-// This component should be added to your OfferDetails.tsx file
-
-export const StartWorkButton = ({
-  offerId,
-  serviceRequestId,
-}: {
+interface StartWorkButtonProps {
   offerId: string;
   serviceRequestId: string;
+  onPress: () => void; // ✅ Add this
+}
+
+export const StartWorkButton: React.FC<StartWorkButtonProps> = ({
+  onPress,
 }) => {
   return (
-    <TouchableOpacity
-      style={styles.startWorkButton}
-      onPress={() => {
-        router.push({
-          pathname: "/(serviceProvider)/ServiceProviderWorkflow ",
-          params: { offerId, serviceRequestId },
-        });
-      }}
-    >
-      <Ionicons name="navigate-outline" size={20} color="#FFFFFF" />
+    <TouchableOpacity style={styles.button} onPress={onPress}>
       <Text style={styles.buttonText}>Start Work</Text>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  // Styles for the StartWorkButton component
-  startWorkButton: {
+  button: {
     backgroundColor: "#3F63C7",
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    margin: 16,
     alignItems: "center",
-    marginTop: 20,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: "#FFF",
     fontWeight: "600",
     fontSize: 16,
-    marginLeft: 8,
   },
 });

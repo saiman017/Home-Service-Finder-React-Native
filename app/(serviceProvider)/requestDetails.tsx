@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatToNepalTime } from "@/utils/formattoNepalTime";
 import { TimeRemainingMinSec } from "@/components/TImeRemainingBanner";
 import { sendServiceOffer } from "@/store/slice/serviceOffer";
+import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 
 export default function CustomerRequestDetails() {
   const { requestId } = useLocalSearchParams();
@@ -34,10 +35,19 @@ export default function CustomerRequestDetails() {
     (state: RootState) => state.serviceOffer
   );
 
+  const { connected } = useServiceOfferSignalR(
+    userId as string, // Provider ID
+    requestId as string // Request ID
+  );
+
   // Find the request with the matching ID
   const requestDetails = pendingRequests?.find(
     (request) => request.id === requestId
   );
+
+  useEffect(() => {
+    console.log("SignalR connection status:", connected);
+  }, [connected]);
 
   // Mock images for demonstration
   const problemImages = [
@@ -55,7 +65,6 @@ export default function CustomerRequestDetails() {
       </View>
     );
   }
-
   const handleSendOffer = async () => {
     if (!offerPrice || isNaN(parseFloat(offerPrice))) {
       Alert.alert("Invalid Price", "Please enter a valid price");
@@ -86,8 +95,9 @@ export default function CustomerRequestDetails() {
             },
           ]
         );
+
+        // No need to manually refresh data as SignalR will push updates
       } else {
-        // Handle error from the action
         Alert.alert("Error", "Failed to send offer. Please try again.");
       }
     } catch (error) {
@@ -96,7 +106,6 @@ export default function CustomerRequestDetails() {
       setIsSending(false);
     }
   };
-
   return (
     <View style={styles.container}>
       <Header title="Request Details" showBackButton={true} />

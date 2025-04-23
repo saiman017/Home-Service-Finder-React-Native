@@ -23,6 +23,7 @@ import {
   cancelServiceRequest,
   resetServiceRequestState,
   clearServiceRequestData,
+  updateServiceRequestStatus,
 } from "@/store/slice/serviceRequest";
 import {
   getOffersByRequestId,
@@ -30,6 +31,8 @@ import {
   rejectOffer,
 } from "@/store/slice/serviceOffer";
 import OfferNotification from "@/components/Notification";
+import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
+import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 300;
@@ -57,24 +60,72 @@ export default function AfterRequestService() {
   const lastY = useRef(0);
   const animatedHeight = useRef(new Animated.Value(PANEL_MIN_HEIGHT)).current;
 
+  // Initialize SignalR connection for this specific request
+  const { connected: signalRConnected } = useServiceRequestSignalR(
+    undefined,
+    serviceRequestId || currentRequest?.id
+  );
+
+  const { connected: offerSignalRConnected } = useServiceOfferSignalR(
+    undefined, // No provider ID since we're the customer
+    serviceRequestId || currentRequest?.id
+  );
+
+  useEffect(() => {
+    console.log("Request SignalR connection:", signalRConnected);
+    console.log("Offer SignalR connection:", offerSignalRConnected);
+  }, [signalRConnected, offerSignalRConnected]);
+
+  // useEffect(() => {
+  //   const requestId = serviceRequestId || currentRequest?.id;
+
+  //   if (requestId) {
+  //     // Get the request details
+  //     dispatch(getServiceRequestById(requestId));
+
+  //     // Check for offers
+  //     dispatch(getOffersByRequestId(requestId));
+
+  //     // Only set up polling if SignalR is not connected
+  //     if (!signalRConnected) {
+  //       const intervalId = setInterval(() => {
+  //         dispatch(getOffersByRequestId(requestId));
+  //         dispatch(getServiceRequestById(requestId)); // Also refresh request status
+  //       }, 10000); // Poll every 10 seconds
+
+  //       return () => clearInterval(intervalId);
+  //     }
+  //   }
+  // }, [serviceRequestId, currentRequest?.id, dispatch, signalRConnected]);
+
   useEffect(() => {
     const requestId = serviceRequestId || currentRequest?.id;
 
     if (requestId) {
-      // Get the request details
+      // Initial data load
       dispatch(getServiceRequestById(requestId));
-
-      // Check for offers
       dispatch(getOffersByRequestId(requestId));
 
-      // Set up polling for new offers
-      const intervalId = setInterval(() => {
-        dispatch(getOffersByRequestId(requestId));
-      }, 10000); // Poll every 10 seconds
+      // Only set up polling if SignalR is not connected
+      if (!signalRConnected || !offerSignalRConnected) {
+        console.log("Setting up polling since SignalR is not connected");
+        const intervalId = setInterval(() => {
+          dispatch(getOffersByRequestId(requestId));
+          dispatch(getServiceRequestById(requestId));
+        }, 10000); // Poll every 10 seconds
 
-      return () => clearInterval(intervalId);
+        return () => clearInterval(intervalId);
+      } else {
+        console.log("Using SignalR for real-time updates");
+      }
     }
-  }, [serviceRequestId, currentRequest?.id, dispatch]);
+  }, [
+    serviceRequestId,
+    currentRequest?.id,
+    dispatch,
+    signalRConnected,
+    offerSignalRConnected,
+  ]);
 
   useEffect(() => {
     if (requestError) {
@@ -91,7 +142,7 @@ export default function AfterRequestService() {
     };
   }, []);
 
-  // Add effect to check for expired or cancelled status
+  // Handle request status changes (including cancellation)
   useEffect(() => {
     if (
       currentRequest &&
@@ -127,7 +178,6 @@ export default function AfterRequestService() {
         text: "Accept",
         style: "default",
         onPress: () => {
-          // Add this offerId to processed list
           setProcessedOfferIds((prev) => [...prev, offerId]);
 
           dispatch(
@@ -145,10 +195,9 @@ export default function AfterRequestService() {
                   {
                     text: "OK",
                     onPress: () => {
-                      // Navigate to the new page with offerId and serviceRequestId
                       router.replace({
                         pathname:
-                          "/(users)/(RequestService)/CustomerRequestDetails", // Path to the new component
+                          "/(users)/(RequestService)/CustomerProviderRequestDetails",
                         params: {
                           offerId: offerId,
                           serviceRequestId:
@@ -161,8 +210,11 @@ export default function AfterRequestService() {
               );
             })
             .catch((error) => {
-              Alert.alert("Error", error);
-              // Remove from processed list if error occurs
+              const errorMessage =
+                typeof error === "string"
+                  ? error
+                  : error?.message || "An unexpected error occurred";
+              Alert.alert("Error", errorMessage);
               setProcessedOfferIds((prev) =>
                 prev.filter((id) => id !== offerId)
               );
@@ -187,7 +239,6 @@ export default function AfterRequestService() {
           text: "Decline",
           style: "destructive",
           onPress: () => {
-            // Add this offerId to processed list
             setProcessedOfferIds((prev) => [...prev, offerId]);
 
             dispatch(
@@ -202,7 +253,6 @@ export default function AfterRequestService() {
                   {
                     text: "OK",
                     onPress: () => {
-                      // Refresh offers list
                       if (serviceRequestId) {
                         dispatch(getOffersByRequestId(serviceRequestId));
                       }
@@ -211,8 +261,11 @@ export default function AfterRequestService() {
                 ]);
               })
               .catch((error) => {
-                Alert.alert("Error", error);
-                // Remove from processed list if error occurs
+                const errorMessage =
+                  typeof error === "string"
+                    ? error
+                    : error?.message || "An unexpected error occurred";
+                Alert.alert("Error", errorMessage);
                 setProcessedOfferIds((prev) =>
                   prev.filter((id) => id !== offerId)
                 );
@@ -313,7 +366,7 @@ export default function AfterRequestService() {
               .then(() => {
                 Alert.alert(
                   "Success",
-                  "Service request cancelled successfully",
+                  "Service request Cancelled successfully",
                   [
                     {
                       text: "OK",
@@ -328,7 +381,11 @@ export default function AfterRequestService() {
                 );
               })
               .catch((error: any) => {
-                Alert.alert("Error", error);
+                const errorMessage =
+                  typeof error === "string"
+                    ? error
+                    : error?.message || "An unexpected error occurred";
+                Alert.alert("Error", errorMessage);
               });
           },
         },
@@ -438,7 +495,7 @@ export default function AfterRequestService() {
                     <Ionicons
                       name={
                         currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "CANCELLED"
+                        currentRequest?.status === "Cancelled"
                           ? "alert-circle-outline"
                           : pendingOffers.length > 0
                           ? "checkmark-circle-outline"
@@ -447,7 +504,7 @@ export default function AfterRequestService() {
                       size={20}
                       color={
                         currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "CANCELLED"
+                        currentRequest?.status === "Cancelled"
                           ? "#FF6B6B"
                           : pendingOffers.length > 0
                           ? "#4CAF50"
@@ -458,15 +515,15 @@ export default function AfterRequestService() {
                       style={[
                         styles.statusValue,
                         currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "CANCELLED"
+                        currentRequest?.status === "Cancelled"
                           ? styles.statusValue
                           : {},
                       ]}
                     >
                       {currentRequest?.status === "Expired"
                         ? "This request has expired"
-                        : currentRequest?.status === "CANCELLED"
-                        ? "This request has been cancelled"
+                        : currentRequest?.status === "Cancelled"
+                        ? "This request has been Cancelled"
                         : pendingOffers.length > 0
                         ? `You have ${pendingOffers.length} offer(s) from service providers!`
                         : "Waiting for service provider"}
@@ -480,7 +537,7 @@ export default function AfterRequestService() {
                   )}
 
                   {currentRequest?.status !== "Expired" &&
-                    currentRequest?.status !== "CANCELLED" && (
+                    currentRequest?.status !== "Cancelled" && (
                       <View style={styles.cancelButtonContainer}>
                         <View style={styles.buttonWrapper}>
                           <Text style={styles.buttonHelperText}>

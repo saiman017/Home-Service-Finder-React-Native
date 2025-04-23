@@ -239,7 +239,7 @@
 // export const { resetServiceRequestState, clearServiceRequestData } =
 //   serviceRequestSlice.actions;
 // export default serviceRequestSlice.reducer;
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { getAxiosInstance } from "@/axios/axiosinstance";
 import { setMessage } from "./message";
 
@@ -508,8 +508,11 @@ export const getPendingRequestsByCategory = createAsyncThunk(
         return rejectWithValue(errorMessage);
       }
 
-      return response.data.data;
+      return response.data.data || [];
     } catch (error: any) {
+      if (error.response?.code === 404) {
+        return [];
+      }
       const message =
         error.response?.data?.data ||
         error.response?.data?.message ||
@@ -554,44 +557,80 @@ export const getServiceRequestById = createAsyncThunk(
 );
 
 // Update service request status
-export const updateServiceRequestStatus = createAsyncThunk(
-  "serviceRequest/updateStatus",
-  async (
-    { requestId, status }: { requestId: string; status: string },
-    { rejectWithValue, dispatch }
-  ) => {
-    try {
-      const response = await getAxiosInstance().put(
-        `/serviceRequest/${requestId}/status`,
-        status
-      );
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage =
-          response.data.data ||
-          response.data.message ||
-          "Failed to update service request status";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
-      }
+// export const updateServiceRequestStatus = createAsyncThunk(
+//   "serviceRequest/updateStatus",
+//   async (
+//     { requestId, status }: { requestId: string; status: string },
+//     { rejectWithValue, dispatch }
+//   ) => {
+//     try {
+//       const response = await getAxiosInstance().put(
+//         `/serviceRequest/${requestId}/status`,
+//         status
+//       );
+//       if (!response.data.success || response.data.code >= 400) {
+//         const errorMessage =
+//           response.data.data ||
+//           response.data.message ||
+//           "Failed to update service request status";
+//         dispatch(setMessage({ data: errorMessage }));
+//         return rejectWithValue(errorMessage);
+//       }
 
-      dispatch(
-        setMessage({ data: "Service request status updated successfully!" })
-      );
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.data ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update service request status";
+//       dispatch(
+//         setMessage({ data: "Service request status updated successfully!" })
+//       );
+//       return response.data.data;
+//     } catch (error: any) {
+//       const message =
+//         error.response?.data?.data ||
+//         error.response?.data?.message ||
+//         error.message ||
+//         "Failed to update service request status";
 
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
-    }
-  }
-);
+//       dispatch(setMessage({ data: message }));
+//       return rejectWithValue(message);
+//     }
+//   }
+// );
 
-// Cancel service request thunk
+// // Cancel service request thunk
+// export const cancelServiceRequest = createAsyncThunk(
+//   "serviceRequest/cancel",
+//   async (
+//     { requestId, customerId }: { requestId: string; customerId: string },
+//     { rejectWithValue, dispatch }
+//   ) => {
+//     try {
+//       const response = await getAxiosInstance().put(
+//         `/serviceRequest/${requestId}/cancel`,
+//         customerId
+//       );
+
+//       if (!response.data.success || response.data.code >= 400) {
+//         const errorMessage =
+//           response.data.data ||
+//           response.data.message ||
+//           "Failed to cancel service request";
+//         dispatch(setMessage({ data: errorMessage }));
+//         return rejectWithValue(errorMessage);
+//       }
+
+//       dispatch(setMessage({ data: "Service request Cancelled successfully!" }));
+//       return response.data.data;
+//     } catch (error: any) {
+//       const message =
+//         error.response?.data?.data ||
+//         error.response?.data?.message ||
+//         error.message ||
+//         "Failed to cancel service request";
+
+//       dispatch(setMessage({ data: message }));
+//       return rejectWithValue(message);
+//     }
+//   }
+// );
+
 export const cancelServiceRequest = createAsyncThunk(
   "serviceRequest/cancel",
   async (
@@ -613,14 +652,58 @@ export const cancelServiceRequest = createAsyncThunk(
         return rejectWithValue(errorMessage);
       }
 
-      dispatch(setMessage({ data: "Service request cancelled successfully!" }));
-      return response.data.data;
+      // Note: We don't need to manually update the UI here as SignalR will
+      // send a CustomerRequestCancelled event which will update the UI
+
+      dispatch(setMessage({ data: "Service request Cancelled successfully!" }));
+      return { requestId, customerId };
     } catch (error: any) {
       const message =
         error.response?.data?.data ||
         error.response?.data?.message ||
         error.message ||
         "Failed to cancel service request";
+
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const updateServiceRequestStatus = createAsyncThunk(
+  "serviceRequest/updateStatus",
+  async (
+    { requestId, status }: { requestId: string; status: string },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const response = await getAxiosInstance().put(
+        `/serviceRequest/${requestId}/status`,
+        status
+      );
+
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.data ||
+          response.data.message ||
+          "Failed to update service request status";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      // Note: We don't need to manually update the UI here as SignalR will
+      // send a RequestStatusUpdated or YourRequestStatusUpdated event
+
+      dispatch(
+        setMessage({ data: "Service request status updated successfully!" })
+      );
+      return { requestId, status };
+    } catch (error: any) {
+      const message =
+        error.response?.data?.data ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to update service request status";
 
       dispatch(setMessage({ data: message }));
       return rejectWithValue(message);
@@ -680,7 +763,56 @@ const serviceRequestSlice = createSlice({
       state.activeRequests = [];
       state.allRequests = [];
     },
+    // Add these new reducers for SignalR updates
+    updateServiceRequestStatusFromSignalR: (state, action) => {
+      const { requestId, status } = action.payload;
+
+      // Helper function to update status in any array
+      const updateStatusInArray = (arr: ServiceRequestResponseDto[]) =>
+        arr.map((req) => (req.id === requestId ? { ...req, status } : req));
+
+      // Update all relevant arrays
+      state.allRequests = updateStatusInArray(state.allRequests);
+      state.customerRequests = updateStatusInArray(state.customerRequests);
+      state.requestsByCategory = updateStatusInArray(state.requestsByCategory);
+      state.activeRequests = updateStatusInArray(state.activeRequests);
+
+      // Remove from pending if status changed from pending
+      if (status !== "Pending") {
+        state.pendingRequests = state.pendingRequests.filter(
+          (req) => req.id !== requestId
+        );
+      }
+
+      // Update current request if it's the one being updated
+      const current = state.currentRequest;
+      if (current && current.id === requestId) {
+        current.status = status;
+      }
+    },
+    handleRequestCancellationFromSignalR: (state, action) => {
+      const { requestId, status } = action.payload;
+
+      state.pendingRequests = (state.pendingRequests || [])
+        .map((req) => (req.id === requestId ? { ...req, status } : req))
+        .filter((req) => req.id !== requestId);
+
+      state.requestsByCategory = state.requestsByCategory
+        .map((req) => (req.id === requestId ? { ...req, status } : req))
+        .filter((req) => req.id !== requestId); // Remove from category list
+
+      // Keep in allRequests but update status
+      state.allRequests = state.allRequests.map((req) =>
+        req.id === requestId ? { ...req, status } : req
+      );
+
+      // Update currentRequest if matched
+      if (state.currentRequest && state.currentRequest.id === requestId) {
+        state.currentRequest.status = status;
+      }
+    },
   },
+
   extraReducers: (builder) => {
     builder
       // Create service request
@@ -699,6 +831,7 @@ const serviceRequestSlice = createSlice({
         state.error = action.payload as string;
         state.success = false;
       })
+
       // Get all service requests
       .addCase(getAllServiceRequests.pending, (state) => {
         state.isLoading = true;
@@ -712,6 +845,7 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Get requests by customer
       .addCase(getRequestsByCustomerId.pending, (state) => {
         state.isLoading = true;
@@ -725,6 +859,7 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Get active requests by customer
       .addCase(getActiveRequestsByCustomerId.pending, (state) => {
         state.isLoading = true;
@@ -738,6 +873,7 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Get pending requests by customer
       .addCase(getPendingRequestsByCustomerId.pending, (state) => {
         state.isLoading = true;
@@ -751,6 +887,7 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Get requests by category
       .addCase(getRequestsByCategory.pending, (state) => {
         state.isLoading = true;
@@ -758,25 +895,27 @@ const serviceRequestSlice = createSlice({
       })
       .addCase(getRequestsByCategory.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.requestsByCategory = action.payload;
+        state.requestsByCategory = action.payload || null;
       })
       .addCase(getRequestsByCategory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      //pending request by category
+
+      // Get pending requests by category
       .addCase(getPendingRequestsByCategory.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
       .addCase(getPendingRequestsByCategory.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.pendingRequests = action.payload;
+        state.pendingRequests = action.payload || [];
       })
       .addCase(getPendingRequestsByCategory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Get service request by ID
       .addCase(getServiceRequestById.pending, (state) => {
         state.isLoading = true;
@@ -790,7 +929,8 @@ const serviceRequestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Update service request status
+
+      // Update service request status (real-time + manual)
       .addCase(updateServiceRequestStatus.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -798,30 +938,34 @@ const serviceRequestSlice = createSlice({
       .addCase(updateServiceRequestStatus.fulfilled, (state, action) => {
         state.isLoading = false;
         state.success = true;
-        if (state.currentRequest) {
-          state.currentRequest.status = action.meta.arg.status;
-        }
       })
       .addCase(updateServiceRequestStatus.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Cancel service request
       .addCase(cancelServiceRequest.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(cancelServiceRequest.fulfilled, (state) => {
+      .addCase(cancelServiceRequest.fulfilled, (state, action) => {
         state.isLoading = false;
         state.success = true;
-        if (state.currentRequest) {
-          state.currentRequest.status = "CANCELLED";
-        }
+
+        const { requestId } = action.payload;
+        state.pendingRequests = state.pendingRequests.filter(
+          (req) => req.id !== requestId
+        );
+        state.requestsByCategory = state.requestsByCategory.map((req) =>
+          req.id === requestId ? { ...req, status: "Cancelled" } : req
+        );
       })
       .addCase(cancelServiceRequest.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
       // Delete requests by customer
       .addCase(deleteRequestsByCustomerId.pending, (state) => {
         state.isLoading = true;
@@ -830,12 +974,12 @@ const serviceRequestSlice = createSlice({
       .addCase(deleteRequestsByCustomerId.fulfilled, (state, action) => {
         state.isLoading = false;
         state.success = true;
+        const customerId = action.payload;
         state.customerRequests = [];
         state.activeRequests = [];
         state.pendingRequests = [];
-        // Also filter out deleted customer requests from allRequests if they exist
         state.allRequests = state.allRequests.filter(
-          (request) => request.customerId !== action.payload
+          (req) => req.customerId !== customerId
         );
       })
       .addCase(deleteRequestsByCustomerId.rejected, (state, action) => {
@@ -846,6 +990,11 @@ const serviceRequestSlice = createSlice({
 });
 
 // Export actions and reducer
-export const { resetServiceRequestState, clearServiceRequestData } =
-  serviceRequestSlice.actions;
+export const {
+  resetServiceRequestState,
+  clearServiceRequestData,
+  updateServiceRequestStatusFromSignalR,
+  handleRequestCancellationFromSignalR,
+} = serviceRequestSlice.actions;
+
 export default serviceRequestSlice.reducer;

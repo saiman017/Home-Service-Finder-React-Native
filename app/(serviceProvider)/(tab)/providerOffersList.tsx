@@ -1,3 +1,207 @@
+// import React, { useEffect, useState } from "react";
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   FlatList,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   RefreshControl,
+// } from "react-native";
+// import { useDispatch, useSelector } from "react-redux";
+// import { AppDispatch, RootState } from "@/store/store";
+// import { getProviderOffers } from "@/store/slice/serviceOffer";
+// import { getServiceRequestById } from "@/store/slice/serviceRequest"; // Import the new thunk
+// import Header from "@/components/Header";
+// import { router } from "expo-router";
+// import { Ionicons } from "@expo/vector-icons";
+// import { formatToNepalTime } from "@/utils/formattoNepalTime";
+
+// // Interface for service offer
+// interface ServiceOffer {
+//   id: string;
+//   serviceRequestId: string;
+//   serviceProviderId: string;
+//   providerName?: string;
+//   offeredPrice: number;
+//   sentAt: string;
+//   expiresAt: string;
+//   status: string;
+// }
+
+// export default function ProviderOffersList() {
+//   const dispatch = useDispatch<AppDispatch>();
+//   const { userId } = useSelector((state: RootState) => state.auth);
+//   const { offers, isLoading } = useSelector(
+//     (state: RootState) => state.serviceOffer
+//   );
+//   const [refreshing, setRefreshing] = useState(false);
+//   const [requestDetailsMap, setRequestDetailsMap] = useState<
+//     Record<string, any>
+//   >({}); // Local state to store request details by ID
+
+//   // Load provider's offers on component mount
+//   useEffect(() => {
+//     if (userId) {
+//       loadOffers();
+//     }
+//   }, [userId]);
+
+//   const loadOffers = async () => {
+//     if (userId) {
+//       await dispatch(getProviderOffers(userId));
+//     }
+//   };
+
+//   // Fetch service request details for all offers
+//   useEffect(() => {
+//     const fetchRequestDetails = async () => {
+//       if (offers && offers.length > 0) {
+//         const newRequestDetailsMap: Record<string, any> = {};
+//         for (const offer of offers) {
+//           try {
+//             const response = await dispatch(
+//               getServiceRequestById(offer.serviceRequestId)
+//             ).unwrap();
+//             newRequestDetailsMap[offer.serviceRequestId] = response;
+//           } catch (error) {
+//             console.error(
+//               `Failed to fetch details for service request ID: ${offer.serviceRequestId}`,
+//               error
+//             );
+//           }
+//         }
+//         setRequestDetailsMap(newRequestDetailsMap); // Update local state with fetched details
+//       }
+//     };
+
+//     fetchRequestDetails();
+//   }, [offers]); // Trigger when offers change
+
+//   const onRefresh = async () => {
+//     setRefreshing(true);
+//     await loadOffers();
+//     setRefreshing(false);
+//   };
+
+//   const handleViewDetails = (serviceRequestId: string, offerId: string) => {
+//     router.push({
+//       pathname: "/(serviceProvider)/offerDetails",
+//       params: { serviceRequestId, offerId },
+//     });
+//   };
+
+//   const getStatusStyle = (status: string) => {
+//     switch (status.toLowerCase()) {
+//       case "accepted":
+//         return styles.statusAccepted;
+//       case "rejected":
+//         return styles.statusRejected;
+//       case "expired":
+//         return styles.statusExpired;
+//       default:
+//         return styles.statusPending;
+//     }
+//   };
+
+//   const getStatusTextStyle = (status: string) => {
+//     switch (status.toLowerCase()) {
+//       case "accepted":
+//         return styles.statusTextAccepted;
+//       case "rejected":
+//         return styles.statusTextRejected;
+//       case "expired":
+//         return styles.statusTextExpired;
+//       default:
+//         return styles.statusTextPending;
+//     }
+//   };
+
+//   const renderOfferItem = ({ item }: { item: ServiceOffer }) => {
+//     const requestDetails = requestDetailsMap[item.serviceRequestId]; // Get details from local state
+//     console.log(item.serviceRequestId);
+
+//     return (
+//       <View style={styles.offerCard}>
+//         <View style={styles.offerHeader}>
+//           <Text style={styles.offerTitle}>
+//             {requestDetails?.serviceCategoryName || "Service Request"}
+//           </Text>
+//           <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
+//             <Text style={[styles.statusText, getStatusTextStyle(item.status)]}>
+//               {item.status}
+//             </Text>
+//           </View>
+//         </View>
+
+//         <View style={styles.offerDetails}>
+//           <View style={styles.detailRow}>
+//             <Ionicons name="location-outline" size={16} color="#666" />
+//             <Text style={styles.detailText}>
+//               {requestDetails?.locationAddress || "Location not specified"}
+//             </Text>
+//           </View>
+
+//           <View style={styles.detailRow}>
+//             <Ionicons name="cash-outline" size={16} color="#666" />
+//             <Text style={styles.detailText}>
+//               NPR {item.offeredPrice.toFixed(2)}
+//             </Text>
+//           </View>
+
+//           <View style={styles.detailRow}>
+//             <Ionicons name="time-outline" size={16} color="#666" />
+//             <Text style={styles.detailText}>
+//               Sent: {formatToNepalTime(item.sentAt)}
+//             </Text>
+//           </View>
+//         </View>
+
+//         <TouchableOpacity
+//           style={styles.viewButton}
+//           onPress={() => handleViewDetails(item.serviceRequestId, item.id)}
+//         >
+//           <Text style={styles.viewButtonText}>View Details</Text>
+//         </TouchableOpacity>
+//       </View>
+//     );
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       <Header title="My Service Offers" showBackButton={true} />
+
+//       {isLoading ? (
+//         <View style={styles.loadingContainer}>
+//           <ActivityIndicator size="large" color="#3F63C7" />
+//         </View>
+//       ) : offers && offers.length > 0 ? (
+//         <FlatList
+//           data={offers}
+//           renderItem={renderOfferItem}
+//           keyExtractor={(item) => item.id}
+//           contentContainerStyle={styles.offersList}
+//           refreshControl={
+//             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+//           }
+//           ListHeaderComponent={
+//             <View style={styles.sectionHeader}>
+//               <Text style={styles.sectionHeaderText}>Your Sent Offers</Text>
+//             </View>
+//           }
+//         />
+//       ) : (
+//         <View style={styles.emptyContainer}>
+//           <Ionicons name="document-outline" size={60} color="#999" />
+//           <Text style={styles.emptyText}>
+//             You haven't sent any service offers yet
+//           </Text>
+//         </View>
+//       )}
+//     </View>
+//   );
+// }
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -11,13 +215,13 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getProviderOffers } from "@/store/slice/serviceOffer";
-import { getServiceRequestById } from "@/store/slice/serviceRequest"; // Import the new thunk
+import { getServiceRequestById } from "@/store/slice/serviceRequest";
 import Header from "@/components/Header";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { formatToNepalTime } from "@/utils/formattoNepalTime";
+import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 
-// Interface for service offer
 interface ServiceOffer {
   id: string;
   serviceRequestId: string;
@@ -35,54 +239,40 @@ export default function ProviderOffersList() {
   const { offers, isLoading } = useSelector(
     (state: RootState) => state.serviceOffer
   );
-  const [refreshing, setRefreshing] = useState(false);
   const [requestDetailsMap, setRequestDetailsMap] = useState<
     Record<string, any>
-  >({}); // Local state to store request details by ID
+  >({});
 
-  // Load provider's offers on component mount
+  const { connected } = useServiceOfferSignalR(userId);
+
   useEffect(() => {
     if (userId) {
-      loadOffers();
+      dispatch(getProviderOffers(userId));
     }
-  }, [userId]);
+  }, [userId, dispatch]);
 
-  const loadOffers = async () => {
-    if (userId) {
-      await dispatch(getProviderOffers(userId));
-    }
-  };
-
-  // Fetch service request details for all offers
   useEffect(() => {
     const fetchRequestDetails = async () => {
       if (offers && offers.length > 0) {
-        const newRequestDetailsMap: Record<string, any> = {};
+        const newMap: Record<string, any> = {};
         for (const offer of offers) {
           try {
             const response = await dispatch(
               getServiceRequestById(offer.serviceRequestId)
             ).unwrap();
-            newRequestDetailsMap[offer.serviceRequestId] = response;
+            newMap[offer.serviceRequestId] = response;
           } catch (error) {
             console.error(
-              `Failed to fetch details for service request ID: ${offer.serviceRequestId}`,
-              error
+              `Failed to load request for ${offer.serviceRequestId}`
             );
           }
         }
-        setRequestDetailsMap(newRequestDetailsMap); // Update local state with fetched details
+        setRequestDetailsMap(newMap);
       }
     };
 
     fetchRequestDetails();
-  }, [offers]); // Trigger when offers change
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadOffers();
-    setRefreshing(false);
-  };
+  }, [offers]);
 
   const handleViewDetails = (serviceRequestId: string, offerId: string) => {
     router.push({
@@ -118,8 +308,7 @@ export default function ProviderOffersList() {
   };
 
   const renderOfferItem = ({ item }: { item: ServiceOffer }) => {
-    const requestDetails = requestDetailsMap[item.serviceRequestId]; // Get details from local state
-    console.log(item.serviceRequestId);
+    const requestDetails = requestDetailsMap[item.serviceRequestId];
 
     return (
       <View style={styles.offerCard}>
@@ -141,14 +330,12 @@ export default function ProviderOffersList() {
               {requestDetails?.locationAddress || "Location not specified"}
             </Text>
           </View>
-
           <View style={styles.detailRow}>
             <Ionicons name="cash-outline" size={16} color="#666" />
             <Text style={styles.detailText}>
               NPR {item.offeredPrice.toFixed(2)}
             </Text>
           </View>
-
           <View style={styles.detailRow}>
             <Ionicons name="time-outline" size={16} color="#666" />
             <Text style={styles.detailText}>
@@ -181,14 +368,6 @@ export default function ProviderOffersList() {
           renderItem={renderOfferItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.offersList}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListHeaderComponent={
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionHeaderText}>Your Sent Offers</Text>
-            </View>
-          }
         />
       ) : (
         <View style={styles.emptyContainer}>
