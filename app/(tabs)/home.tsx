@@ -16,12 +16,13 @@ import {
   fetchServiceCategories,
   setSelectedCategoryId,
 } from "@/store/slice/serviceCategory";
-import { AppDispatch, RootState } from "@/store/store"; // Import the correct dispatch type
+import { AppDispatch, RootState } from "@/store/store";
 import { fetchLocation } from "@/store/slice/location";
 import {
   getPendingRequestsByCustomerId,
   getServiceRequestById,
 } from "@/store/slice/serviceRequest";
+import { fetchUserById, selectUserById } from "@/store/slice/user";
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
@@ -30,12 +31,12 @@ export default function Home() {
   );
   const { currentLocation } = useSelector((state: RootState) => state.location);
   const { userId } = useSelector((state: RootState) => state.auth);
-
-  console.log("dfadf", userId);
+  const currentUser = useSelector(selectUserById) || null;
 
   useEffect(() => {
     dispatch(fetchServiceCategories());
     if (userId) {
+      dispatch(fetchUserById(userId));
       dispatch(fetchLocation(userId));
     }
   }, [dispatch]);
@@ -46,9 +47,6 @@ export default function Home() {
   const goToLocationSelect = () => {
     router.push("/(users)/(location)/setAddress");
   };
-  // const goToRequestService = () => {
-  //   router.push("/(users)/(RequestService)/RequestService");
-  // };
 
   const navigateToService = async (
     categoryId: string,
@@ -62,16 +60,13 @@ export default function Home() {
         ).unwrap();
 
         if (pendingRequest) {
-          // If a pending request exists, fetch its full details
           await dispatch(getServiceRequestById(pendingRequest.id)).unwrap();
 
-          // Navigate to the AfterRequestService page
           router.push("/AfterRequestService");
           return;
         }
       }
 
-      // No pending request found — go to RequestService page
       dispatch(setSelectedCategoryId(categoryId));
       router.push({
         pathname: "/(users)/(RequestService)/RequestService",
@@ -105,10 +100,22 @@ export default function Home() {
           />
         </View>
         <TouchableOpacity onPress={goToProfile}>
-          <Image
-            source={require("@/assets/images/gardener.png")}
-            style={styles.profileImage}
-          />
+          {currentUser?.profilePicture ? (
+            <Image
+              source={{
+                uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+              }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileImage}>
+              <Text style={styles.initialsText}>
+                {`${currentUser?.firstName?.[0] || ""}${
+                  currentUser?.lastName?.[0] || ""
+                }`}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -230,6 +237,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 6,
     backgroundColor: "green",
+  },
+  initialsText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
   },
   locationBar: {
     flexDirection: "row",

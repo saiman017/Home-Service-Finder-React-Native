@@ -68,7 +68,7 @@ export const fetchUserById = createAsyncThunk(
 // Thunk for editing a user
 interface EditUserPayload {
   id: string;
-  userData: Partial<User>;
+  userData: Partial<User> | FormData;
 }
 
 export const editUser = createAsyncThunk(
@@ -82,6 +82,50 @@ export const editUser = createAsyncThunk(
         (error.response && error.response.data.data) ||
         error.message ||
         error.toString();
+      thunkAPI.dispatch(setMessage(message));
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Upload profile picture
+export const uploadProfilePicture = createAsyncThunk(
+  "users/uploadProfilePicture",
+  async ({ id, file }: { id: string; file: FormData }, thunkAPI) => {
+    try {
+      const response = await getAxiosInstance().post(
+        `/users/${id}/uploadProfilePicture`,
+        file,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return { id, profilePicture: response.data.data };
+    } catch (error: any) {
+      const message =
+        (error.response && error.response.data.data) ||
+        error.message ||
+        error.toString() ||
+        "Failed to upload the image";
+      thunkAPI.dispatch(setMessage(message));
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Delete profile picture
+export const deleteProfilePicture = createAsyncThunk(
+  "users/deleteProfilePicture",
+  async (id: string, thunkAPI) => {
+    try {
+      await getAxiosInstance().delete(`/users/${id}/deleteProfilePicture`);
+      return { id };
+    } catch (error: any) {
+      const message =
+        (error.response && error.response.data.data) ||
+        error.message ||
+        error.toString() ||
+        "Failed to deleted the image";
       thunkAPI.dispatch(setMessage(message));
       return thunkAPI.rejectWithValue(message);
     }
@@ -133,6 +177,31 @@ const userSlice = createSlice({
         state.error = null;
       })
       .addCase(editUser.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      .addCase(uploadProfilePicture.fulfilled, (state, action) => {
+        const { id, profilePicture } = action.payload;
+        const userIndex = state.data.findIndex((user) => user.id === id);
+        if (userIndex !== -1)
+          state.data[userIndex].profilePicture = profilePicture;
+        if (state.currentUser?.id === id) {
+          state.currentUser.profilePicture = profilePicture;
+        }
+      })
+      .addCase(uploadProfilePicture.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+
+      // Handle deleteProfilePicture
+      .addCase(deleteProfilePicture.fulfilled, (state, action) => {
+        const { id } = action.payload;
+        const userIndex = state.data.findIndex((user) => user.id === id);
+        if (userIndex !== -1) state.data[userIndex].profilePicture = undefined;
+        if (state.currentUser?.id === id) {
+          state.currentUser.profilePicture = undefined;
+        }
+      })
+      .addCase(deleteProfilePicture.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },

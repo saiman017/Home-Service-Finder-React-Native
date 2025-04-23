@@ -25,8 +25,11 @@ import { fetchServiceListByCategory } from "@/store/slice/serviceList";
 import {
   createServiceRequest,
   resetServiceRequestState,
+  uploadServiceRequestImages,
 } from "@/store/slice/serviceRequest";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 240;
@@ -52,6 +55,7 @@ export default function ServiceRequestScreen() {
     currentRequest,
   } = useSelector((state: RootState) => state.serviceRequest);
   const { userId } = useSelector((state: RootState) => state.auth);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
 
   // ✅ Use SignalR hook for real-time updates
   useServiceRequestSignalR(categoryId, currentRequest?.id);
@@ -161,6 +165,19 @@ export default function ServiceRequestScreen() {
     })
   ).current;
 
+  const pickImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true, // Allows multiple images
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const uris = result.assets.map((asset) => asset.uri);
+      setSelectedImages((prev) => [...prev, ...uris]);
+    }
+  };
+
   const toggleService = (serviceId: string) => {
     setSelectedServices((prev) =>
       prev.includes(serviceId)
@@ -178,17 +195,15 @@ export default function ServiceRequestScreen() {
       .join(", ");
   };
 
-  const findService = () => {
+  const findService = async () => {
     if (!userId) {
       Alert.alert("Error", "You must be logged in to request services");
       return;
     }
-
     if (selectedServices.length === 0) {
       Alert.alert("Error", "Please select at least one service");
       return;
     }
-
     if (!currentLocation) {
       Alert.alert("Error", "Location data is required");
       return;
@@ -202,17 +217,19 @@ export default function ServiceRequestScreen() {
       serviceListIds: selectedServices,
     };
 
-    dispatch(createServiceRequest(requestPayload));
+    const result = await dispatch(createServiceRequest(requestPayload));
+    if (createServiceRequest.fulfilled.match(result)) {
+      const requestId = result.payload.data;
+      if (selectedImages.length > 0) {
+        const files = selectedImages.map((uri) => {
+          const name = uri.split("/").pop() || "image.jpg";
+          const type = "image/jpeg";
+          return { uri, name, type };
+        });
+        await dispatch(uploadServiceRequestImages({ requestId, files }));
+      }
+    }
   };
-
-  if (!categoryId) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>No category selected</Text>
-        <Button onPress={() => router.back()} title="Go Back" />
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -328,6 +345,45 @@ export default function ServiceRequestScreen() {
                     onChangeText={setServiceDescription}
                     textAlignVertical="top"
                   />
+
+                  <Text style={[styles.label, { marginTop: 16 }]}>
+                    Upload Images (Max 6)
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.uploadButton}
+                    onPress={pickImages}
+                    disabled={selectedImages.length >= 6}
+                  >
+                    <View style={styles.uploadPlaceholder}>
+                      <Ionicons
+                        name="image-outline"
+                        size={24}
+                        color="#808080"
+                      />
+                      <Text style={styles.uploadText}>
+                        {selectedImages.length >= 6
+                          ? "Max images uploaded"
+                          : "Tap to upload images"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {selectedImages.map((uri, index) => (
+                      <Image
+                        key={index}
+                        source={{ uri }}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          marginRight: 10,
+                          marginTop: 10,
+                          borderRadius: 8,
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
 
                   <TouchableOpacity
                     style={styles.findButton}

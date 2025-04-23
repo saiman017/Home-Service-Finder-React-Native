@@ -17,7 +17,8 @@ import {
   fetchServiceCategories,
   setSelectedCategoryId,
 } from "@/store/slice/serviceCategory";
-import { AppDispatch, RootState } from "@/store/store"; // Import the correct dispatch type
+import { fetchUserById, selectUserById } from "@/store/slice/user";
+import { AppDispatch, RootState } from "@/store/store";
 import { fetchLocation } from "@/store/slice/location";
 
 export default function Home() {
@@ -25,9 +26,11 @@ export default function Home() {
 
   const { currentLocation } = useSelector((state: RootState) => state.location);
   const { userId } = useSelector((state: RootState) => state.auth);
+  const currentUser = useSelector(selectUserById) || null;
 
   useEffect(() => {
     if (userId) {
+      dispatch(fetchUserById(userId));
       dispatch(fetchLocation(userId));
     }
   }, [dispatch]);
@@ -56,8 +59,6 @@ export default function Home() {
       }`
     : "Set your location";
 
-  const defaultIcon = require("@/assets/images/gardener.png");
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -70,10 +71,22 @@ export default function Home() {
           />
         </View>
         <TouchableOpacity onPress={goToProfile}>
-          <Image
-            source={require("@/assets/images/gardener.png")}
-            style={styles.profileImage}
-          />
+          {currentUser?.profilePicture ? (
+            <Image
+              source={{
+                uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+              }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profileImage}>
+              <Text style={styles.initialsText}>
+                {`${currentUser?.firstName?.[0] || ""}${
+                  currentUser?.lastName?.[0] || ""
+                }`}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -121,8 +134,14 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 6,
-    backgroundColor: "green",
+    backgroundColor: "#fefefe",
   },
+  initialsText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
   locationBar: {
     flexDirection: "row",
     alignItems: "center",

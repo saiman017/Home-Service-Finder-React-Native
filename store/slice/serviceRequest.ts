@@ -290,9 +290,12 @@ interface ServiceRequestState {
   activeRequests: ServiceRequestResponseDto[];
   allRequests: ServiceRequestResponseDto[];
   currentRequest: ServiceRequestResponseDto | null;
+  imageUploadLoading: boolean;
+  imageUploadError: string | null;
+  imageUploadSuccess: boolean;
+  uploadedImages: string[]; // Add this
 }
 
-// Initial state
 const initialState: ServiceRequestState = {
   isLoading: false,
   error: null,
@@ -304,6 +307,10 @@ const initialState: ServiceRequestState = {
   activeRequests: [],
   allRequests: [],
   currentRequest: null,
+  imageUploadLoading: false,
+  imageUploadError: null,
+  imageUploadSuccess: false,
+  uploadedImages: [], // Initialize here
 };
 
 // Create service request thunk
@@ -461,6 +468,45 @@ export const getPendingRequestsByCustomerId = createAsyncThunk(
   }
 );
 
+export const uploadServiceRequestImages = createAsyncThunk(
+  "serviceRequest/uploadImages",
+  async (
+    { requestId, files }: { requestId: string; files: any[] },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await getAxiosInstance().post(
+        `/serviceRequest/${requestId}/uploadImages`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage = response.data.message || "Failed to upload images";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+
+      dispatch(setMessage({ data: "Images uploaded successfully!" }));
+      return response.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || error.message || "Upload failed";
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Get requests by category ID
 export const getRequestsByCategory = createAsyncThunk(
   "serviceRequest/getByCategory",
@@ -555,81 +601,6 @@ export const getServiceRequestById = createAsyncThunk(
     }
   }
 );
-
-// Update service request status
-// export const updateServiceRequestStatus = createAsyncThunk(
-//   "serviceRequest/updateStatus",
-//   async (
-//     { requestId, status }: { requestId: string; status: string },
-//     { rejectWithValue, dispatch }
-//   ) => {
-//     try {
-//       const response = await getAxiosInstance().put(
-//         `/serviceRequest/${requestId}/status`,
-//         status
-//       );
-//       if (!response.data.success || response.data.code >= 400) {
-//         const errorMessage =
-//           response.data.data ||
-//           response.data.message ||
-//           "Failed to update service request status";
-//         dispatch(setMessage({ data: errorMessage }));
-//         return rejectWithValue(errorMessage);
-//       }
-
-//       dispatch(
-//         setMessage({ data: "Service request status updated successfully!" })
-//       );
-//       return response.data.data;
-//     } catch (error: any) {
-//       const message =
-//         error.response?.data?.data ||
-//         error.response?.data?.message ||
-//         error.message ||
-//         "Failed to update service request status";
-
-//       dispatch(setMessage({ data: message }));
-//       return rejectWithValue(message);
-//     }
-//   }
-// );
-
-// // Cancel service request thunk
-// export const cancelServiceRequest = createAsyncThunk(
-//   "serviceRequest/cancel",
-//   async (
-//     { requestId, customerId }: { requestId: string; customerId: string },
-//     { rejectWithValue, dispatch }
-//   ) => {
-//     try {
-//       const response = await getAxiosInstance().put(
-//         `/serviceRequest/${requestId}/cancel`,
-//         customerId
-//       );
-
-//       if (!response.data.success || response.data.code >= 400) {
-//         const errorMessage =
-//           response.data.data ||
-//           response.data.message ||
-//           "Failed to cancel service request";
-//         dispatch(setMessage({ data: errorMessage }));
-//         return rejectWithValue(errorMessage);
-//       }
-
-//       dispatch(setMessage({ data: "Service request Cancelled successfully!" }));
-//       return response.data.data;
-//     } catch (error: any) {
-//       const message =
-//         error.response?.data?.data ||
-//         error.response?.data?.message ||
-//         error.message ||
-//         "Failed to cancel service request";
-
-//       dispatch(setMessage({ data: message }));
-//       return rejectWithValue(message);
-//     }
-//   }
-// );
 
 export const cancelServiceRequest = createAsyncThunk(
   "serviceRequest/cancel",
@@ -763,6 +734,12 @@ const serviceRequestSlice = createSlice({
       state.activeRequests = [];
       state.allRequests = [];
     },
+    resetImageUploadStatus: (state) => {
+      state.imageUploadLoading = false;
+      state.imageUploadError = null;
+      state.imageUploadSuccess = false;
+    },
+
     // Add these new reducers for SignalR updates
     updateServiceRequestStatusFromSignalR: (state, action) => {
       const { requestId, status } = action.payload;
@@ -985,6 +962,20 @@ const serviceRequestSlice = createSlice({
       .addCase(deleteRequestsByCustomerId.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      }) // Upload images
+      .addCase(uploadServiceRequestImages.pending, (state) => {
+        state.imageUploadLoading = true;
+        state.imageUploadError = null;
+        state.imageUploadSuccess = false;
+      })
+      .addCase(uploadServiceRequestImages.fulfilled, (state, action) => {
+        state.imageUploadLoading = false;
+        state.imageUploadSuccess = true;
+        state.uploadedImages = action.payload.data || [];
+      })
+      .addCase(uploadServiceRequestImages.rejected, (state, action) => {
+        state.imageUploadLoading = false;
+        state.imageUploadError = action.payload as string;
       });
   },
 });
@@ -995,6 +986,7 @@ export const {
   clearServiceRequestData,
   updateServiceRequestStatusFromSignalR,
   handleRequestCancellationFromSignalR,
+  resetImageUploadStatus,
 } = serviceRequestSlice.actions;
 
 export default serviceRequestSlice.reducer;
