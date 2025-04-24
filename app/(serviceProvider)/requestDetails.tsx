@@ -19,6 +19,7 @@ import { formatToNepalTime } from "@/utils/formattoNepalTime";
 import { TimeRemainingMinSec } from "@/components/TImeRemainingBanner";
 import { sendServiceOffer } from "@/store/slice/serviceOffer";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
+import { getServiceRequestById } from "@/store/slice/serviceRequest";
 
 export default function CustomerRequestDetails() {
   const { requestId } = useLocalSearchParams();
@@ -34,26 +35,33 @@ export default function CustomerRequestDetails() {
   const { isLoading: offerLoading } = useSelector(
     (state: RootState) => state.serviceOffer
   );
+  const { currentRequest } = useSelector(
+    (state: RootState) => state.serviceRequest
+  );
 
   const { connected } = useServiceOfferSignalR(
     userId as string, // Provider ID
     requestId as string // Request ID
   );
+  useEffect(() => {
+    const requestIdStr =
+      typeof requestId === "string" ? requestId : requestId?.[0] ?? "";
+    if (requestIdStr) {
+      dispatch(getServiceRequestById(requestIdStr));
+    }
+  }, [requestId, dispatch]);
+  const requestDetails = currentRequest;
 
-  // Find the request with the matching ID
-  const requestDetails = pendingRequests?.find(
-    (request) => request.id === requestId
-  );
+  // const requestDetails = pendingRequests?.find(
+  //   (request) => request.id === requestId
+  // );
+  console.log(requestDetails);
 
   useEffect(() => {
     console.log("SignalR connection status:", connected);
   }, [connected]);
 
-  // Mock images for demonstration
-  const problemImages = [
-    require("@/assets/images/electrician.png"),
-    require("@/assets/images/electrician.png"),
-  ];
+  const problemImages = requestDetails?.serviceRequestImagePaths || [];
 
   if (!requestDetails) {
     return (
@@ -91,7 +99,7 @@ export default function CustomerRequestDetails() {
           [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () => router.replace("/(serviceProvider)/(tab)/home"),
             },
           ]
         );
@@ -191,16 +199,21 @@ export default function CustomerRequestDetails() {
               showsHorizontalScrollIndicator={false}
               style={styles.imagesContainer}
             >
-              {problemImages.map((image, index) => (
-                <Image
-                  key={index}
-                  source={image}
-                  style={styles.problemImage}
-                  resizeMode="cover"
-                />
-              ))}
+              {problemImages.length > 0 ? (
+                problemImages.map((imageUri, index) => (
+                  <Image
+                    key={imageUri}
+                    source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
+                    style={styles.problemImage}
+                    resizeMode="cover"
+                  />
+                ))
+              ) : (
+                <Text style={{ color: "#999" }}>No images uploaded</Text>
+              )}
             </ScrollView>
           </View>
+
           {/* Price Offer Section */}
           <View style={styles.offerSection}>
             <Text style={styles.sectionTitle}>Send Price Offer</Text>

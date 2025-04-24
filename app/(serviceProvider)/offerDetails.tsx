@@ -470,6 +470,30 @@ export default function OfferDetails() {
             <Text style={styles.sectionTitle}>Description</Text>
             <Text>{serviceRequest.description || "No description"}</Text>
           </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Problem Images</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.imagesContainer}
+            >
+              {serviceRequest.serviceRequestImagePaths &&
+              serviceRequest.serviceRequestImagePaths.length > 0 ? (
+                serviceRequest.serviceRequestImagePaths.map(
+                  (imageUri: string, index: number) => (
+                    <Image
+                      key={index}
+                      source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
+                      style={styles.problemImage}
+                      resizeMode="cover"
+                    />
+                  )
+                )
+              ) : (
+                <Text style={{ color: "#999" }}>No images uploaded</Text>
+              )}
+            </ScrollView>
+          </View>
         </View>
       </ScrollView>
 
@@ -489,12 +513,6 @@ export default function OfferDetails() {
     </View>
   );
 }
-
-// Mock images for demonstration
-const problemImages = [
-  require("@/assets/images/electrician.png"),
-  require("@/assets/images/electrician.png"),
-];
 
 const styles = StyleSheet.create({
   container: {

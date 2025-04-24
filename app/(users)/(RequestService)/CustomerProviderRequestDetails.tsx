@@ -384,6 +384,7 @@ import { getServiceRequestById } from "@/store/slice/serviceRequest";
 import { getOfferById } from "@/store/slice/serviceOffer";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
+import { clearCurrentOffer } from "@/store/slice/serviceOffer";
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
@@ -399,7 +400,11 @@ export default function CustomerRequestDetails() {
   const dispatch = useDispatch<AppDispatch>();
   const { userId } = useSelector((state: RootState) => state.auth);
   const [serviceRequest, setServiceRequest] = useState<any>(null);
-  const [offerDetails, setOfferDetails] = useState<any>(null);
+  // const [offerDetails, setOfferDetails] = useState<any>(null);
+  const offerDetails = useSelector(
+    (state: RootState) => state.serviceOffer.currentOffer // or relevant slice
+  );
+
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -430,15 +435,48 @@ export default function CustomerRequestDetails() {
   // Location tracking subscription
   const locationSubscriptionRef = useRef<any>(null);
 
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       if (offerId) {
+  //         const offerResponse = await dispatch(
+  //           getOfferById(offerId as string)
+  //         ).unwrap();
+  //       }
+  //       if (serviceRequestId) {
+  //         const requestResponse = await dispatch(
+  //           getServiceRequestById(serviceRequestId as string)
+  //         ).unwrap();
+  //         setServiceRequest(requestResponse);
+  //       }
+
+  //       // Start location tracking after fetching initial data
+  //       await requestLocationPermissionAndStartTracking();
+  //     } catch (error) {
+  //       console.error("Error fetching data:", error);
+  //       Alert.alert("Error", "Failed to load required information.");
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchData();
+
+  //   // Cleanup function
+  //   return () => {
+  //     if (locationSubscriptionRef.current) {
+  //       locationSubscriptionRef.current.then((sub: any) => sub.remove());
+  //     }
+  //   };
+  // }, [offerId, serviceRequestId, dispatch]);
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        // Clear stale offer before fetching new one
+        dispatch(clearCurrentOffer());
+
         if (offerId) {
-          const offerResponse = await dispatch(
-            getOfferById(offerId as string)
-          ).unwrap();
-          setOfferDetails(offerResponse);
+          await dispatch(getOfferById(offerId as string)).unwrap();
         }
         if (serviceRequestId) {
           const requestResponse = await dispatch(
@@ -447,7 +485,6 @@ export default function CustomerRequestDetails() {
           setServiceRequest(requestResponse);
         }
 
-        // Start location tracking after fetching initial data
         await requestLocationPermissionAndStartTracking();
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -456,9 +493,9 @@ export default function CustomerRequestDetails() {
         setIsLoading(false);
       }
     };
+
     fetchData();
 
-    // Cleanup function
     return () => {
       if (locationSubscriptionRef.current) {
         locationSubscriptionRef.current.then((sub: any) => sub.remove());
@@ -493,13 +530,16 @@ export default function CustomerRequestDetails() {
 
   // Update status notification when offer status changes
   useEffect(() => {
-    if (
-      offerDetails?.status === "In_Progress" &&
-      serviceRequest?.status !== "Completed"
-    ) {
+    if (offerDetails?.status === "In_Progress") {
       Alert.alert(
         "Provider Arrived",
-        "The service provider has reached your location and is ready to begin work."
+        "The service provider has reached your location and started the work."
+      );
+    } else if (offerDetails?.status === "Completed") {
+      Alert.alert(
+        "Provider Update",
+        "The service provider has completed the work.",
+        [{ text: "Go to Home", onPress: () => router.replace("/(tabs)/home") }]
       );
     }
   }, [offerDetails?.status]);
@@ -829,19 +869,19 @@ export default function CustomerRequestDetails() {
           {renderStatusBadge()}
 
           <View style={styles.providerDetailsContainer}>
-            <Image
+            {/* <Image
               source={{
                 uri:
                   offerDetails?.providerProfileImage ||
                   "https://via.placeholder.com/80",
               }}
               style={styles.profileImage}
-            />
+            /> */}
             <Text style={styles.providerName}>
               {offerDetails?.providerName || "Provider"}
             </Text>
             <Text style={styles.contactNumber}>
-              Contact: {offerDetails?.contactNumber || "N/A"}
+              Contact: {offerDetails?.providerName || "N/A"}
             </Text>
           </View>
 
@@ -856,6 +896,29 @@ export default function CustomerRequestDetails() {
             <Text style={styles.value}>
               {serviceRequest?.serviceListNames?.join(", ") || "N/A"}
             </Text>
+
+            <Text style={styles.label}>Problem Images</Text>
+            {serviceRequest?.serviceRequestImagePaths?.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.imagesContainer}
+              >
+                {serviceRequest.serviceRequestImagePaths.map(
+                  (imageUri: string) => (
+                    <Image
+                      key={imageUri}
+                      source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
+                      style={styles.problemImage}
+                      resizeMode="cover"
+                    />
+                  )
+                )}
+              </ScrollView>
+            ) : (
+              <Text style={styles.value}>No images uploaded</Text>
+            )}
+
             <Text style={styles.label}>Description</Text>
             <Text style={styles.value}>
               {serviceRequest?.description || "No additional details provided"}
@@ -906,6 +969,20 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
+  imagesContainer: {
+    flexDirection: "row",
+
+    marginTop: 10,
+  },
+
+  problemImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+
   infoPanel: {
     position: "absolute",
     bottom: 0,

@@ -82,12 +82,22 @@ export default function UserProfile() {
           <View style={styles.profileImageContainer}>
             {currentUser?.profilePicture ? (
               <Image
-                source={{ uri: currentUser.profilePicture }}
+                source={{
+                  uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+                }}
                 style={styles.profileImage}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={60} color="#FFFFFF" />
+                <Text
+                  style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}
+                >
+                  {currentUser
+                    ? `${currentUser.firstName?.[0] || ""}${
+                        currentUser.lastName?.[0] || ""
+                      }`
+                    : ""}
+                </Text>
               </View>
             )}
           </View>
@@ -202,6 +212,12 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#3F63C7",
   },
+  initialsText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
   profileImagePlaceholder: {
     width: 90,
     height: 90,

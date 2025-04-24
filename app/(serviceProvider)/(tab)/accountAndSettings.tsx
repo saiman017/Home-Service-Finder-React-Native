@@ -57,15 +57,27 @@ export default function AccountAndSettings() {
           {/* Profile Section */}
           <View style={styles.profile}>
             <View style={styles.profileHeader}>
-              {/* {currentUser?.profilePicture ? (
+              {currentUser?.profilePicture ? (
                 <Image
-                  source={{ uri: currentUser.profilePicture }}
+                  source={{
+                    uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+                  }}
                   style={styles.profileImage}
                 />
               ) : (
-                <Ionicons name="person-circle" size={80} color="#525050" />
-              )} */}
-              <Ionicons name="person-circle" size={80} color="#525050" />
+                <View style={styles.profileImagePlaceholder}>
+                  <Text
+                    style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}
+                  >
+                    {currentUser
+                      ? `${currentUser.firstName?.[0] || ""}${
+                          currentUser.lastName?.[0] || ""
+                        }`
+                      : ""}
+                  </Text>
+                </View>
+              )}
+
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>
                   {currentUser
@@ -157,6 +169,29 @@ const styles = StyleSheet.create({
   profileInfo: {
     marginLeft: 15,
     justifyContent: "center",
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "#3F63C7",
+  },
+  initialsText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+
+  profileImagePlaceholder: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#C4C4C4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#3F63C7",
   },
   profileName: {
     fontSize: 18,

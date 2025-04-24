@@ -25,9 +25,18 @@ interface ServiceProvider {
   modifiedAt: string;
 }
 
+interface ProviderStatistics {
+  totalEarnings: number;
+  totalCompletedOffers: number;
+  totalRevenueToday: number;
+  totalRevenueThisWeek: number;
+  totalOffersCompletedToday: number;
+}
+
 interface ServiceProviderState {
   providers: ServiceProvider[];
   selectedProvider: ServiceProvider | null;
+  statistics: ProviderStatistics | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -72,6 +81,8 @@ interface ServiceProviderUpdateRequestDto {
 const initialState: ServiceProviderState = {
   providers: [],
   selectedProvider: null,
+  statistics: null,
+
   isLoading: false,
   error: null,
 };
@@ -197,6 +208,29 @@ export const deleteServiceProvider = createAsyncThunk(
   }
 );
 
+export const fetchProviderStatistics = createAsyncThunk(
+  "serviceProvider/fetchStatistics",
+  async (providerId: string, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().get(
+        `/serviceProvider/statistics/${providerId}`
+      );
+      if (!response.data.success || response.data.code >= 400) {
+        const errorMessage =
+          response.data.message || "Failed to fetch statistics";
+        dispatch(setMessage({ data: errorMessage }));
+        return rejectWithValue(errorMessage);
+      }
+      return response.data.data;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Failed to fetch statistics";
+      dispatch(setMessage({ data: message }));
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Create the slice
 const serviceProviderSlice = createSlice({
   name: "serviceProvider",
@@ -291,6 +325,19 @@ const serviceProviderSlice = createSlice({
         }
       })
       .addCase(deleteServiceProvider.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      .addCase(fetchProviderStatistics.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchProviderStatistics.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.statistics = action.payload;
+      })
+      .addCase(fetchProviderStatistics.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });
