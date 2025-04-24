@@ -33,10 +33,11 @@ import {
 import OfferNotification from "@/components/Notification";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
+import { Image } from "react-native";
 
 const { height } = Dimensions.get("window");
-const PANEL_MIN_HEIGHT = 300;
-const PANEL_MAX_HEIGHT = height * 0.5;
+const PANEL_MIN_HEIGHT = 400;
+const PANEL_MAX_HEIGHT = height * 0.6;
 const DRAG_THRESHOLD = 50;
 
 export default function AfterRequestService() {
@@ -479,6 +480,33 @@ export default function AfterRequestService() {
                     </Text>
                   </View>
 
+                  {currentRequest?.serviceRequestImagePaths &&
+                    currentRequest.serviceRequestImagePaths.length > 0 && (
+                      <>
+                        <Text style={[styles.label, { marginTop: 16 }]}>
+                          Uploaded Images
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                        >
+                          {currentRequest.serviceRequestImagePaths.map(
+                            (imageUri, index) => (
+                              <View key={index} style={styles.imageContainer}>
+                                <Image
+                                  source={{
+                                    uri: `http://10.0.2.2:5039${imageUri}`,
+                                  }}
+                                  style={styles.image}
+                                  resizeMode="cover"
+                                />
+                              </View>
+                            )
+                          )}
+                        </ScrollView>
+                      </>
+                    )}
+
                   <Text style={[styles.label, { marginTop: 16 }]}>
                     Additional Details
                   </Text>
@@ -675,6 +703,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F8C52B",
   },
+  imageContainer: {
+    width: 100,
+    height: 100,
+    marginRight: 10,
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#dedede",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+
   statusValue: {
     marginLeft: 8,
     fontSize: 16,

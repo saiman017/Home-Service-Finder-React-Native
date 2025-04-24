@@ -11,8 +11,9 @@
 //   PanResponder,
 //   Dimensions,
 //   ScrollView,
+//   Image,
 // } from "react-native";
-// import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
+// import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 // import MapViewDirections from "react-native-maps-directions";
 // import * as ExpoLocation from "expo-location";
 // import { Ionicons } from "@expo/vector-icons";
@@ -36,8 +37,6 @@
 // const PANEL_MAX_HEIGHT = height * 0.6;
 // const DRAG_THRESHOLD = 50;
 
-// type WorkStatus = "Pending" | "Accepted" | "In_Progress" | "Completed";
-
 // export default function ServiceProviderWorkflow() {
 //   const { offerId, serviceRequestId } = useLocalSearchParams();
 //   const dispatch = useDispatch<AppDispatch>();
@@ -52,7 +51,6 @@
 //   const [duration, setDuration] = useState<string>("Calculating...");
 //   const [isLoading, setIsLoading] = useState<boolean>(true);
 //   const [routeCoordinates, setRouteCoordinates] = useState<any[]>([]);
-//   const [workStatus, setWorkStatus] = useState<WorkStatus>("Accepted");
 //   const mapRef = useRef<MapView | null>(null);
 //   const [mapRegion, setMapRegion] = useState<any>(null);
 
@@ -66,6 +64,9 @@
 //     serviceRequestId as string
 //   );
 
+//   // Location tracking subscription
+//   const locationSubscriptionRef = useRef<any>(null);
+
 //   useEffect(() => {
 //     const fetchData = async () => {
 //       try {
@@ -75,7 +76,6 @@
 //             getOfferById(offerId as string)
 //           ).unwrap();
 //           setOfferDetails(offerResponse);
-//           setWorkStatus(offerResponse.status || "Accepted");
 //         }
 //         if (serviceRequestId) {
 //           const requestResponse = await dispatch(
@@ -83,6 +83,9 @@
 //           ).unwrap();
 //           setServiceRequest(requestResponse);
 //         }
+
+//         // Start location tracking after fetching initial data
+//         await requestLocationPermissionAndStartTracking();
 //       } catch (error) {
 //         console.error("Error fetching data:", error);
 //         Alert.alert("Error", "Failed to load required information.");
@@ -91,6 +94,13 @@
 //       }
 //     };
 //     fetchData();
+
+//     // Cleanup function
+//     return () => {
+//       if (locationSubscriptionRef.current) {
+//         locationSubscriptionRef.current.then((sub: any) => sub.remove());
+//       }
+//     };
 //   }, [offerId, serviceRequestId, dispatch]);
 
 //   useEffect(() => {
@@ -118,7 +128,7 @@
 //     };
 //   }, []);
 
-//   const requestLocationAndCalculateRoute = async () => {
+//   const requestLocationPermissionAndStartTracking = async () => {
 //     const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
 //     if (status !== "granted") {
 //       Alert.alert(
@@ -127,14 +137,18 @@
 //       );
 //       return;
 //     }
+
 //     try {
+//       // Get initial location
 //       const location = await ExpoLocation.getCurrentPositionAsync({
 //         accuracy: ExpoLocation.Accuracy.High,
 //       });
+
 //       const { latitude, longitude } = location.coords;
 //       setCurrentLocation({ latitude, longitude });
 
-//       const locationSubscription = ExpoLocation.watchPositionAsync(
+//       // Start watching position
+//       const subscription = ExpoLocation.watchPositionAsync(
 //         {
 //           accuracy: ExpoLocation.Accuracy.High,
 //           timeInterval: 5000,
@@ -143,25 +157,20 @@
 //         (location) => {
 //           const { latitude, longitude } = location.coords;
 //           setCurrentLocation({ latitude, longitude });
-//           if (
-//             serviceRequest &&
-//             serviceRequest.locationLatitude &&
-//             serviceRequest.locationLongitude
-//           ) {
-//             calculateDetailedRoute(latitude, longitude);
-//           }
 //         }
 //       );
 
-//       return () => {
-//         locationSubscription.then((sub) => sub.remove());
-//       };
+//       // Store subscription reference for cleanup
+//       locationSubscriptionRef.current = subscription;
+
+//       return subscription;
 //     } catch (error) {
 //       console.error("Error getting location:", error);
 //       Alert.alert("Error", "Failed to get your current location");
 //     }
 //   };
 
+//   // Update map and calculate route when currentLocation or serviceRequest changes
 //   useEffect(() => {
 //     if (
 //       currentLocation &&
@@ -169,11 +178,10 @@
 //       serviceRequest.locationLatitude &&
 //       serviceRequest.locationLongitude
 //     ) {
-//       calculateDetailedRoute(
-//         currentLocation.latitude,
-//         currentLocation.longitude
-//       );
+//       // Calculate new route
+//       calculateDetailedRoute();
 
+//       // Update map region to show both points
 //       const midLat =
 //         (currentLocation.latitude + serviceRequest.locationLatitude) / 2;
 //       const midLng =
@@ -195,18 +203,20 @@
 //     }
 //   }, [currentLocation, serviceRequest]);
 
-//   const calculateDetailedRoute = async (startLat: number, startLng: number) => {
+//   const calculateDetailedRoute = async () => {
 //     if (
+//       !currentLocation ||
 //       !serviceRequest ||
 //       !serviceRequest.locationLatitude ||
 //       !serviceRequest.locationLongitude
 //     ) {
 //       return;
 //     }
+
 //     try {
 //       const result = await googleMapsService.getRouteInfo(
-//         startLat,
-//         startLng,
+//         currentLocation.latitude,
+//         currentLocation.longitude,
 //         serviceRequest.locationLatitude,
 //         serviceRequest.locationLongitude
 //       );
@@ -242,7 +252,8 @@
 
 //   const handleReachedDestination = async () => {
 //     try {
-//       if (workStatus === "In_Progress") return; // Prevent duplicate updates
+//       // Check if we're already in progress
+//       if (offerDetails?.status === "In_Progress") return;
 
 //       setIsLoading(true);
 //       if (!offerId) {
@@ -254,15 +265,19 @@
 //         return;
 //       }
 
-//       // Only update the offer status, not the request status
-//       await dispatch(
+//       // Update the offer status
+//       const response = await dispatch(
 //         updateOfferStatus({
 //           offerId: offerId as string,
 //           status: "In_Progress",
 //         })
 //       ).unwrap();
 
-//       setWorkStatus("In_Progress");
+//       setOfferDetails({
+//         ...offerDetails,
+//         status: "In_Progress",
+//       });
+
 //       Alert.alert("Arrival Confirmed", "You can now begin the service work.");
 //     } catch (error) {
 //       console.error("Error updating status:", error);
@@ -271,8 +286,9 @@
 //       setIsLoading(false);
 //     }
 //   };
+
 //   const handleCompletedWork = async () => {
-//     if (workStatus === "Completed" || isLoading) return;
+//     if (offerDetails?.status === "Completed" || isLoading) return;
 
 //     try {
 //       setIsLoading(true);
@@ -281,7 +297,7 @@
 //         return;
 //       }
 
-//       // Update offer status only
+//       // Update offer status first
 //       await dispatch(
 //         updateOfferStatus({
 //           offerId: offerId as string,
@@ -289,10 +305,16 @@
 //         })
 //       ).unwrap();
 
+//       // Update local state
+//       setOfferDetails({
+//         ...offerDetails,
+//         status: "Completed",
+//       });
+
 //       // Delay for SignalR sync
 //       await new Promise((resolve) => setTimeout(resolve, 300));
 
-//       // Trigger request status update (UI will sync via SignalR)
+//       // Trigger request status update
 //       await dispatch(
 //         updateServiceRequestStatus({
 //           requestId: serviceRequestId as string,
@@ -300,8 +322,7 @@
 //         })
 //       ).unwrap();
 
-//       // **REMOVE** local setWorkStatus("Completed") here
-//       // Wait for SignalR to handle UI updates
+//       // Let SignalR handle service request state updates
 //     } catch (error) {
 //       console.error("Error updating status:", error);
 //       Alert.alert("Error", "Failed to update status. Please try again.");
@@ -378,8 +399,9 @@
 //   };
 
 //   const renderActionButton = () => {
-//     console.log("Current workStatus:", workStatus);
-//     switch (workStatus) {
+//     const status = offerDetails?.status || "Accepted";
+
+//     switch (status) {
 //       case "Accepted":
 //         return (
 //           <TouchableOpacity
@@ -430,7 +452,7 @@
 //           ref={mapRef}
 //           style={styles.map}
 //           provider={PROVIDER_GOOGLE}
-//           initialRegion={mapRegion}
+//           region={mapRegion}
 //           showsUserLocation={true}
 //         >
 //           {serviceRequest &&
@@ -466,10 +488,10 @@
 //                 apikey={GOOGLE_MAPS_API_KEY}
 //                 strokeWidth={4}
 //                 strokeColor="#FF3B30"
-//                 onReady={(result: any) => {
-//                   const distanceValue = parseFloat(result.distance);
+//                 onReady={(result) => {
+//                   const distanceValue = result.distance;
 //                   const formattedDistance = distanceValue.toFixed(2) + " km";
-//                   const durationValue = parseFloat(result.duration);
+//                   const durationValue = result.duration;
 //                   const formattedDuration = durationValue.toFixed(1) + " mins";
 
 //                   setDistance(formattedDistance);
@@ -520,10 +542,33 @@
 //             <Text style={styles.value}>
 //               {serviceRequest?.locationAddress || "N/A"}
 //             </Text>
+
 //             <Text style={styles.label}>Description</Text>
 //             <Text style={styles.value}>
 //               {serviceRequest?.description || "No additional details"}
 //             </Text>
+//             {serviceRequest?.serviceRequestImagePaths?.length > 0 && (
+//               <View style={styles.imagesSection}>
+//                 <Text style={styles.sectionTitle}>Problem Images</Text>
+//                 <ScrollView
+//                   horizontal
+//                   showsHorizontalScrollIndicator={false}
+//                   style={styles.imagesContainer}
+//                 >
+//                   {serviceRequest.serviceRequestImagePaths.map(
+//                     (imageUri: string, index: number) => (
+//                       <Image
+//                         key={index}
+//                         source={{ uri: `http://10.0.2.2:5039${imageUri}` }} // Adjust your base URL if needed
+//                         style={styles.problemImage}
+//                         resizeMode="cover"
+//                       />
+//                     )
+//                   )}
+//                 </ScrollView>
+//               </View>
+//             )}
+
 //             <Text style={styles.label}>Your Offer</Text>
 //             <Text style={styles.priceValue}>
 //               NPR {offerDetails?.offeredPrice || "N/A"}
@@ -679,7 +724,6 @@
 //     marginBottom: 20,
 //   },
 //   actionButton: {
-//     // Fixed style - was missing in your styles
 //     backgroundColor: "#007bff",
 //     borderRadius: 12,
 //     padding: 15,
@@ -696,7 +740,6 @@
 //     alignItems: "center",
 //   },
 //   completedContainer: {
-//     // Fixed style - was "CompletedContainer" with capital C
 //     flexDirection: "row",
 //     justifyContent: "center",
 //     alignItems: "center",
@@ -711,7 +754,6 @@
 //     marginLeft: 8,
 //   },
 //   completedText: {
-//     // Fixed style - was "CompletedText" with capital C
 //     color: "#4CAF50",
 //     fontWeight: "600",
 //     fontSize: 16,
@@ -746,7 +788,26 @@
 //     fontWeight: "bold",
 //     fontSize: 12,
 //   },
+//   imagesSection: {
+//     marginBottom: 15,
+//   },
+//   sectionTitle: {
+//     fontSize: 16,
+//     fontWeight: "600",
+//     color: "#333333",
+//     marginBottom: 10,
+//   },
+//   imagesContainer: {
+//     flexDirection: "row",
+//   },
+//   problemImage: {
+//     width: 120,
+//     height: 120,
+//     borderRadius: 8,
+//     marginRight: 10,
+//   },
 // });
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   View,
@@ -760,6 +821,7 @@ import {
   PanResponder,
   Dimensions,
   ScrollView,
+  Image,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
@@ -775,6 +837,7 @@ import {
 import { getOfferById, updateOfferStatus } from "@/store/slice/serviceOffer";
 import { googleMapsService } from "@/store/slice/googleMapsService";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
+import { clearCurrentOffer } from "@/store/slice/serviceOffer";
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
@@ -788,7 +851,10 @@ const DRAG_THRESHOLD = 50;
 export default function ServiceProviderWorkflow() {
   const { offerId, serviceRequestId } = useLocalSearchParams();
   const dispatch = useDispatch<AppDispatch>();
-  const { userId } = useSelector((state: RootState) => state.auth);
+  useEffect(() => {
+    dispatch(clearCurrentOffer());
+  }, [dispatch]);
+
   const [serviceRequest, setServiceRequest] = useState<any>(null);
   const [offerDetails, setOfferDetails] = useState<any>(null);
   const [currentLocation, setCurrentLocation] = useState<{
@@ -1021,7 +1087,6 @@ export default function ServiceProviderWorkflow() {
         })
       ).unwrap();
 
-      // Update local state with response
       setOfferDetails({
         ...offerDetails,
         status: "In_Progress",
@@ -1035,6 +1100,50 @@ export default function ServiceProviderWorkflow() {
       setIsLoading(false);
     }
   };
+
+  // const handleCompletedWork = async () => {
+  //   if (offerDetails?.status === "Completed" || isLoading) return;
+
+  //   try {
+  //     setIsLoading(true);
+  //     if (!offerId || !serviceRequestId) {
+  //       Alert.alert("Error", "Required information not found");
+  //       return;
+  //     }
+
+  //     // Update offer status first
+  //     await dispatch(
+  //       updateOfferStatus({
+  //         offerId: offerId as string,
+  //         status: "Completed",
+  //       })
+  //     ).unwrap();
+
+  //     // Update local state
+  //     setOfferDetails({
+  //       ...offerDetails,
+  //       status: "Completed",
+  //     });
+
+  //     // Delay for SignalR sync
+  //     await new Promise((resolve) => setTimeout(resolve, 300));
+
+  //     // Trigger request status update
+  //     await dispatch(
+  //       updateServiceRequestStatus({
+  //         requestId: serviceRequestId as string,
+  //         status: "Completed",
+  //       })
+  //     ).unwrap();
+
+  //     // Let SignalR handle service request state updates
+  //   } catch (error) {
+  //     console.error("Error updating status:", error);
+  //     Alert.alert("Error", "Failed to update status. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const handleCompletedWork = async () => {
     if (offerDetails?.status === "Completed" || isLoading) return;
@@ -1071,7 +1180,15 @@ export default function ServiceProviderWorkflow() {
         })
       ).unwrap();
 
-      // Let SignalR handle service request state updates
+      // After successful completion, navigate back to home
+      Alert.alert("Success", "Work has been marked as completed.", [
+        {
+          text: "Go to Home",
+          onPress: () => {
+            router.replace("/(serviceProvider)/(tab)/home");
+          },
+        },
+      ]);
     } catch (error) {
       console.error("Error updating status:", error);
       Alert.alert("Error", "Failed to update status. Please try again.");
@@ -1291,10 +1408,33 @@ export default function ServiceProviderWorkflow() {
             <Text style={styles.value}>
               {serviceRequest?.locationAddress || "N/A"}
             </Text>
+
             <Text style={styles.label}>Description</Text>
             <Text style={styles.value}>
               {serviceRequest?.description || "No additional details"}
             </Text>
+            {serviceRequest?.serviceRequestImagePaths?.length > 0 && (
+              <View style={styles.imagesSection}>
+                <Text style={styles.sectionTitle}>Problem Images</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imagesContainer}
+                >
+                  {serviceRequest.serviceRequestImagePaths.map(
+                    (imageUri: string, index: number) => (
+                      <Image
+                        key={index}
+                        source={{ uri: `http://10.0.2.2:5039${imageUri}` }} // Adjust your base URL if needed
+                        style={styles.problemImage}
+                        resizeMode="cover"
+                      />
+                    )
+                  )}
+                </ScrollView>
+              </View>
+            )}
+
             <Text style={styles.label}>Your Offer</Text>
             <Text style={styles.priceValue}>
               NPR {offerDetails?.offeredPrice || "N/A"}
@@ -1513,5 +1653,23 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 12,
+  },
+  imagesSection: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 10,
+  },
+  imagesContainer: {
+    flexDirection: "row",
+  },
+  problemImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 10,
   },
 });

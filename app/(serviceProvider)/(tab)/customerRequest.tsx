@@ -140,7 +140,7 @@ export default function CustomerRequest() {
   return (
     <View style={styles.container}>
       <Header title="Customer Requests" showBackButton={true} />
-      {categoryId && (
+      {/* {categoryId && (
         <View
           style={[
             styles.connectionIndicator,
@@ -165,7 +165,7 @@ export default function CustomerRequest() {
               : "Using periodic updates"}
           </Text>
         </View>
-      )}
+      )} */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3F63C7" />
