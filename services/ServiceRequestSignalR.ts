@@ -178,7 +178,7 @@ class ServiceRequestSignalRService {
         .build();
 
       this.connection.serverTimeoutInMilliseconds = 60000; // Wait for 60 seconds
-      this.connection.keepAliveIntervalInMilliseconds = 15000; // Send ping every 15s
+      this.connection.keepAliveIntervalInMilliseconds = 10000; // Send ping every 15s
 
       // Event handlers
       Object.keys(this.eventHandlers).forEach((eventName) => {

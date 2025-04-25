@@ -381,7 +381,12 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getServiceRequestById } from "@/store/slice/serviceRequest";
-import { getOfferById } from "@/store/slice/serviceOffer";
+import {
+  clearOffers,
+  clearRequestsWithOffers,
+  getOfferById,
+  resetServiceOfferState,
+} from "@/store/slice/serviceOffer";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { clearCurrentOffer } from "@/store/slice/serviceOffer";
@@ -541,6 +546,10 @@ export default function CustomerRequestDetails() {
         "The service provider has completed the work.",
         [{ text: "Go to Home", onPress: () => router.replace("/(tabs)/home") }]
       );
+      dispatch(resetServiceOfferState());
+      dispatch(clearCurrentOffer());
+      dispatch(clearRequestsWithOffers());
+      dispatch(clearOffers());
     }
   }, [offerDetails?.status]);
 

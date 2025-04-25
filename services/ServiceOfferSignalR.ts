@@ -168,7 +168,7 @@ class ServiceOfferSignalRService {
         .build();
 
       this.connection.serverTimeoutInMilliseconds = 60000; // 60s timeout
-      this.connection.keepAliveIntervalInMilliseconds = 15000; // 15s ping
+      this.connection.keepAliveIntervalInMilliseconds = 10000; // 15s ping
 
       // Register event handlers
       Object.keys(this.eventHandlers).forEach((eventName) => {

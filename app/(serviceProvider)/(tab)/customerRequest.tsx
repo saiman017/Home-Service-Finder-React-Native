@@ -55,15 +55,33 @@ export default function CustomerRequest() {
     }
   }, [dispatch, userId, role, isAuthenticated]);
 
+  // useEffect(() => {
+  //   if (selectedProvider?.serviceCategoryId) {
+  //     const catId = selectedProvider.serviceCategoryId;
+  //     setCategoryId(catId);
+  //     if (!signalRConnected) {
+  //       dispatch(getPendingRequestsByCategory(catId));
+  //     }
+  //   }
+  // }, [selectedProvider, signalRConnected]);
+
   useEffect(() => {
     if (selectedProvider?.serviceCategoryId) {
       const catId = selectedProvider.serviceCategoryId;
       setCategoryId(catId);
-      if (!signalRConnected) {
-        dispatch(getPendingRequestsByCategory(catId));
-      }
+
+      // Always fetch pending requests when categoryId updates (for initial load)
+      dispatch(getPendingRequestsByCategory(catId));
     }
-  }, [selectedProvider, signalRConnected]);
+  }, [selectedProvider]);
+
+  // Separate effect for SignalR connection
+  useEffect(() => {
+    if (signalRConnected && categoryId) {
+      console.log("SignalR connected for category:", categoryId);
+      // Optionally, you can refetch here if needed
+    }
+  }, [signalRConnected, categoryId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
