@@ -444,6 +444,132 @@
 
 //   return { connected };
 // };
+
+// import { useEffect, useState, useCallback } from "react";
+// import { useDispatch, useSelector } from "react-redux";
+// import { useRouter } from "expo-router";
+// import serviceOfferSignalR from "@/services/ServiceOfferSignalR";
+// import { AppDispatch, RootState } from "@/store/store";
+// import {
+//   addNewOffer,
+//   updateOfferFromSignalR,
+//   handleOfferAcceptedFromSignalR,
+//   handleOfferRejectedFromSignalR,
+//   handleOfferExpiredFromSignalR,
+//   clearCurrentOffer,
+// } from "@/store/slice/serviceOffer";
+// import { Alert } from "react-native";
+// import { useFocusEffect } from "@react-navigation/native";
+
+// export const useServiceOfferSignalR = (
+//   providerId?: string | null,
+//   requestId?: string | null
+// ) => {
+//   const dispatch = useDispatch<AppDispatch>();
+//   const router = useRouter();
+//   const { role } = useSelector((state: RootState) => state.auth);
+//   const [connected, setConnected] = useState(false);
+
+//   // Always reconnect when the screen refocuses
+//   useFocusEffect(
+//     useCallback(() => {
+//       let isActive = true;
+
+//       const handlers = {
+//         NewOfferReceived: (offer: any) => dispatch(addNewOffer(offer)),
+
+//         OfferStatusUpdated: (offer: any) => {
+//           console.log("Offer status updated event (Customer):", offer);
+//           dispatch(updateOfferFromSignalR(offer));
+
+//           if (role === "customer") {
+//             if (offer.status === "In_Progress") {
+//               Alert.alert(
+//                 "Provider Update",
+//                 "The service provider has reached your location and started the work."
+//               );
+//             } else if (offer.status === "Completed") {
+//               Alert.alert(
+//                 "Provider Update",
+//                 "The service provider has completed the work.",
+//                 [
+//                   {
+//                     text: "Go to Home",
+//                     onPress: () => router.replace("/(tabs)/home"),
+//                   },
+//                 ]
+//               );
+//             }
+//           }
+//         },
+
+//         YourOfferAccepted: (offer: any) => {
+//           dispatch(clearCurrentOffer());
+//           dispatch(handleOfferAcceptedFromSignalR(offer));
+//           console.log("Offer accepted event:", offer);
+//           if (role === "serviceProvider") {
+//             Alert.alert(
+//               "Offer Accepted",
+//               "Your offer has been accepted by the customer!",
+//               [
+//                 {
+//                   text: "Go to Workflow",
+//                   onPress: () => {
+//                     router.replace({
+//                       pathname: "/(serviceProvider)/ServiceProviderWorkflow",
+//                       params: {
+//                         offerId: offer.id,
+//                         serviceRequestId: offer.serviceRequestId,
+//                       },
+//                     });
+//                   },
+//                 },
+//               ]
+//             );
+//           }
+//         },
+
+//         YourOfferRejected: (offer: any) =>
+//           dispatch(handleOfferRejectedFromSignalR(offer)),
+
+//         YourOfferExpired: (offer: any) =>
+//           dispatch(handleOfferExpiredFromSignalR(offer)),
+//       };
+
+//       const connectSignalR = async () => {
+//         const success = await serviceOfferSignalR.connect();
+//         if (!success || !isActive) return;
+
+//         // Attach handlers
+//         Object.entries(handlers).forEach(([event, handler]) => {
+//           serviceOfferSignalR.on(event as any, handler);
+//         });
+
+//         if (providerId) {
+//           await serviceOfferSignalR.joinProviderOffersGroup(providerId);
+//         }
+//         if (requestId) {
+//           await serviceOfferSignalR.joinRequestOffersGroup(requestId);
+//         }
+
+//         if (isActive) setConnected(true);
+//       };
+
+//       connectSignalR();
+
+//       return () => {
+//         isActive = false;
+//         Object.entries(handlers).forEach(([event, handler]) => {
+//           serviceOfferSignalR.off(event as any, handler);
+//         });
+//         setConnected(false);
+//       };
+//     }, [providerId, requestId, dispatch, role, router]) // Depend only on stable values
+//   );
+
+//   return { connected };
+// };
+
 import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
@@ -468,8 +594,9 @@ export const useServiceOfferSignalR = (
   const router = useRouter();
   const { role } = useSelector((state: RootState) => state.auth);
   const [connected, setConnected] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const MAX_RETRIES = 5;
 
-  // Always reconnect when the screen refocuses
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -478,7 +605,7 @@ export const useServiceOfferSignalR = (
         NewOfferReceived: (offer: any) => dispatch(addNewOffer(offer)),
 
         OfferStatusUpdated: (offer: any) => {
-          console.log("Offer status updated event (Customer):", offer);
+          console.log("Offer status updated (Customer):", offer);
           dispatch(updateOfferFromSignalR(offer));
 
           if (role === "customer") {
@@ -505,7 +632,7 @@ export const useServiceOfferSignalR = (
         YourOfferAccepted: (offer: any) => {
           dispatch(clearCurrentOffer());
           dispatch(handleOfferAcceptedFromSignalR(offer));
-          console.log("Offer accepted event:", offer);
+          console.log("Offer accepted (Provider):", offer);
           if (role === "serviceProvider") {
             Alert.alert(
               "Offer Accepted",
@@ -537,19 +664,24 @@ export const useServiceOfferSignalR = (
 
       const connectSignalR = async () => {
         const success = await serviceOfferSignalR.connect();
-        if (!success || !isActive) return;
+        if (!success && isActive && reconnectAttempts < MAX_RETRIES) {
+          setReconnectAttempts((prev) => prev + 1);
+          setTimeout(connectSignalR, 2000); // Retry after 2s
+          return;
+        }
 
-        // Attach handlers
+        if (!isActive || !success) return;
+
+        // Attach event handlers
         Object.entries(handlers).forEach(([event, handler]) => {
           serviceOfferSignalR.on(event as any, handler);
         });
 
-        if (providerId) {
+        // Join groups
+        if (providerId)
           await serviceOfferSignalR.joinProviderOffersGroup(providerId);
-        }
-        if (requestId) {
+        if (requestId)
           await serviceOfferSignalR.joinRequestOffersGroup(requestId);
-        }
 
         if (isActive) setConnected(true);
       };
@@ -563,7 +695,7 @@ export const useServiceOfferSignalR = (
         });
         setConnected(false);
       };
-    }, [providerId, requestId, dispatch, role, router]) // Depend only on stable values
+    }, [providerId, requestId, dispatch, role, reconnectAttempts, router])
   );
 
   return { connected };
