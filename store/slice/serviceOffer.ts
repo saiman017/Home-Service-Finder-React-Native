@@ -766,8 +766,9 @@ interface ServiceOffer {
   offeredPrice: number;
   sentAt: string;
   expiresAt: string;
-  status: string; // "Pending", "Accepted", "Rejected", "Expired"
-  // Additional fields for request details
+  status: string;
+  paymentStatus: boolean;
+  paymentReason?: string | null;
   requestDetails?: {
     serviceCategoryName?: string;
     locationAddress?: string;
@@ -785,8 +786,14 @@ interface ServiceOffer {
 interface StatusUpdateRequest {
   offerId: string;
   status: string;
+  requestId: string;
+  customerId: string;
 }
 
+interface PaymentUpdateRequest {
+  offerId: string;
+  paymentStatus: boolean;
+}
 // Interface for the service offer state
 interface ServiceOfferState {
   isLoading: boolean;
@@ -794,6 +801,7 @@ interface ServiceOfferState {
   offers: ServiceOffer[];
   currentOffer: ServiceOffer | null;
   // Track the request IDs that have received offers from the current provider
+  lastUpdated: number | null;
   requestsWithOffers: string[];
 }
 
@@ -803,6 +811,7 @@ const initialState: ServiceOfferState = {
   error: null,
   offers: [],
   currentOffer: null,
+  lastUpdated: null,
   requestsWithOffers: [],
 };
 
@@ -848,13 +857,76 @@ export const sendServiceOffer = createAsyncThunk(
   }
 );
 
+export const updatePaymentStatus = createAsyncThunk<
+  ServiceOffer,
+  PaymentUpdateRequest,
+  { rejectValue: string }
+>(
+  "serviceOffer/updatePaymentStatus",
+  async ({ offerId, paymentStatus }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await getAxiosInstance().put(
+        `/serviceOffer/${offerId}/payment`,
+        { paymentStatus }
+      );
+
+      if (!response.data.success || response.data.code >= 400) {
+        const err =
+          response.data.data ||
+          response.data.message ||
+          "Failed to update payment";
+        dispatch(setMessage({ data: err }));
+        return rejectWithValue(err);
+      }
+
+      dispatch(setMessage({ data: "Payment status updated successfully!" }));
+      return response.data.data as ServiceOffer;
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.data ||
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to update payment";
+      dispatch(setMessage({ data: msg }));
+      return rejectWithValue(msg);
+    }
+  }
+);
+
+export const updatePaymentReason = createAsyncThunk<
+  ServiceOffer,
+  { offerId: string; paymentReason: string },
+  { rejectValue: string }
+>(
+  "serviceOffer/updatePaymentReason",
+  async ({ offerId, paymentReason }, { rejectWithValue, dispatch }) => {
+    try {
+      const resp = await getAxiosInstance().put(
+        `/serviceOffer/${offerId}/reason`,
+        { paymentReason }
+      );
+      if (!resp.data.success) throw new Error(resp.data.message);
+      dispatch(setMessage({ data: "Reason submitted!" }));
+      return resp.data.data as ServiceOffer;
+    } catch (err: any) {
+      const msg = err.message || "Failed";
+      dispatch(setMessage({ data: msg }));
+      return rejectWithValue(msg);
+    }
+  }
+);
+
 export const updateOfferStatus = createAsyncThunk(
   "serviceOffer/updateStatus",
   async (request: StatusUpdateRequest, { rejectWithValue, dispatch }) => {
     try {
       const response = await getAxiosInstance().put(
         `/serviceOffer/${request.offerId}/status`,
-        { status: request.status }
+        {
+          status: request.status,
+          requestId: request.requestId,
+          customerId: request.customerId,
+        }
       );
 
       if (!response.data.success || response.data.code >= 400) {
@@ -1154,6 +1226,19 @@ const serviceOfferSlice = createSlice({
         });
       }
     },
+    handlePaymentUpdatedFromSignalR: (
+      state,
+      action: PayloadAction<ServiceOffer>
+    ) => {
+      const updated = action.payload;
+      const idx = state.offers.findIndex((o) => o.id === updated.id);
+      if (idx !== -1) {
+        state.offers[idx] = updated;
+      }
+      if (state.currentOffer?.id === updated.id) {
+        state.currentOffer = updated;
+      }
+    },
 
     handleOfferRejectedFromSignalR: (
       state,
@@ -1318,6 +1403,41 @@ const serviceOfferSlice = createSlice({
       .addCase(updateOfferStatus.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(updatePaymentStatus.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updatePaymentStatus.fulfilled, (state, { payload }) => {
+        state.isLoading = false;
+        state.error = null;
+        const idx = state.offers.findIndex((o) => o.id === payload.id);
+        if (idx !== -1) {
+          state.offers[idx] = payload;
+        } else {
+          state.offers.push(payload);
+        }
+        if (state.currentOffer?.id === payload.id) {
+          state.currentOffer = payload;
+        }
+      })
+      .addCase(updatePaymentStatus.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updatePaymentReason.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updatePaymentReason.fulfilled, (state, { payload }) => {
+        state.isLoading = false;
+        const i = state.offers.findIndex((o) => o.id === payload.id);
+        if (i > -1) state.offers[i] = payload;
+        if (state.currentOffer?.id === payload.id) state.currentOffer = payload;
+      })
+      .addCase(updatePaymentReason.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
   },
 });
@@ -1335,6 +1455,7 @@ export const {
   handleOfferAcceptedFromSignalR,
   handleOfferRejectedFromSignalR,
   handleOfferExpiredFromSignalR,
+  handlePaymentUpdatedFromSignalR,
 } = serviceOfferSlice.actions;
 
 export default serviceOfferSlice.reducer;

@@ -570,7 +570,7 @@
 //   return { connected };
 // };
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "expo-router";
 import serviceOfferSignalR from "@/services/ServiceOfferSignalR";
@@ -581,11 +581,124 @@ import {
   handleOfferAcceptedFromSignalR,
   handleOfferRejectedFromSignalR,
   handleOfferExpiredFromSignalR,
+  handlePaymentUpdatedFromSignalR,
   clearCurrentOffer,
 } from "@/store/slice/serviceOffer";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
+// export const useServiceOfferSignalR = (
+//   providerId?: string | null,
+//   requestId?: string | null
+// ) => {
+//   const dispatch = useDispatch<AppDispatch>();
+//   const router = useRouter();
+//   const { role } = useSelector((state: RootState) => state.auth);
+//   const [connected, setConnected] = useState(false);
+//   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+//   const MAX_RETRIES = 5;
+//   const activeOfferIdRef = useRef<string | null>(null);
+
+//   useFocusEffect(
+//     useCallback(() => {
+//       let isActive = true;
+//       if (requestId) {
+//         activeOfferIdRef.current = requestId; // Track active request
+//       }
+//       const handlers = {
+//         NewOfferReceived: (offer: any) => dispatch(addNewOffer(offer)),
+
+//         OfferStatusUpdated: (offer: any) => {
+//           if (offer.serviceRequestId !== activeOfferIdRef.current) return;
+//           console.log("Offer status updated (Customer):", offer);
+//           dispatch(updateOfferFromSignalR(offer));
+//         },
+
+//         YourOfferAccepted: (offer: any) => {
+//           dispatch(clearCurrentOffer());
+//           dispatch(handleOfferAcceptedFromSignalR(offer));
+//           console.log("Offer accepted (Provider):", offer);
+//           if (role === "serviceProvider") {
+//             Alert.alert(
+//               "Offer Accepted",
+//               "Your offer has been accepted by the customer!",
+//               [
+//                 {
+//                   text: "Go to Workflow",
+//                   onPress: () => {
+//                     router.replace({
+//                       pathname: "/(serviceProvider)/ServiceProviderWorkflow",
+//                       params: {
+//                         offerId: offer.id,
+//                         serviceRequestId: offer.serviceRequestId,
+//                       },
+//                     });
+//                   },
+//                 },
+//               ]
+//             );
+//           }
+//         },
+
+//         YourOfferRejected: (offer: any) =>
+//           dispatch(handleOfferRejectedFromSignalR(offer)),
+
+//         YourOfferExpired: (offer: any) =>
+//           dispatch(handleOfferExpiredFromSignalR(offer)),
+
+//         OfferPaymentUpdated: (offer: any) => {
+//           console.log("Payment updated (Customer/Provider):", offer);
+//           if (offer.serviceRequestId !== activeOfferIdRef.current) return;
+//           dispatch(handlePaymentUpdatedFromSignalR(offer));
+//         },
+//       };
+
+//       const connectSignalR = async () => {
+//         const success = await serviceOfferSignalR.connect();
+//         if (!success && isActive && reconnectAttempts < MAX_RETRIES) {
+//           setReconnectAttempts((prev) => prev + 1);
+//           setTimeout(connectSignalR, 2000); // Retry after 2s
+//           return;
+//         }
+
+//         if (!isActive || !success) return;
+
+//         // Attach event handlers
+//         Object.entries(handlers).forEach(([event, handler]) => {
+//           serviceOfferSignalR.on(event as any, handler);
+//         });
+
+//         // Join groups
+//         if (providerId)
+//           await serviceOfferSignalR.joinProviderOffersGroup(providerId);
+//         if (requestId)
+//           await serviceOfferSignalR.joinRequestOffersGroup(requestId);
+
+//         if (isActive) setConnected(true);
+//       };
+
+//       connectSignalR();
+
+//       return () => {
+//         isActive = false;
+//         Object.entries(handlers).forEach(([event, handler]) => {
+//           serviceOfferSignalR.off(event as any, handler);
+//         });
+//         setConnected(false);
+//       };
+//     }, [
+//       providerId,
+//       requestId,
+//       dispatch,
+//       reconnectAttempts,
+//       role,
+//       reconnectAttempts,
+//       router,
+//     ])
+//   );
+
+//   return { connected };
+// };
 export const useServiceOfferSignalR = (
   providerId?: string | null,
   requestId?: string | null
@@ -594,90 +707,70 @@ export const useServiceOfferSignalR = (
   const router = useRouter();
   const { role } = useSelector((state: RootState) => state.auth);
   const [connected, setConnected] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectAttempts = useRef(0);
   const MAX_RETRIES = 5;
+  const activeRequestIdRef = useRef<string | null>(requestId || null);
+
+  const handlersRef = useRef<any>(null);
+
+  const setupHandlers = useCallback(
+    () => ({
+      NewOfferReceived: (offer: any) => dispatch(addNewOffer(offer)),
+      OfferStatusUpdated: (offer: any) => {
+        if (offer.serviceRequestId !== activeRequestIdRef.current) return;
+        dispatch(updateOfferFromSignalR(offer));
+      },
+      YourOfferAccepted: (offer: any) => {
+        dispatch(clearCurrentOffer());
+        dispatch(handleOfferAcceptedFromSignalR(offer));
+        if (role === "serviceProvider") {
+          Alert.alert("Offer Accepted", "Your offer has been accepted!", [
+            {
+              text: "Go to Workflow",
+              onPress: () => {
+                router.replace({
+                  pathname: "/(serviceProvider)/ServiceProviderWorkflow",
+                  params: {
+                    offerId: offer.id,
+                    serviceRequestId: offer.serviceRequestId,
+                  },
+                });
+              },
+            },
+          ]);
+        }
+      },
+      YourOfferRejected: (offer: any) =>
+        dispatch(handleOfferRejectedFromSignalR(offer)),
+      YourOfferExpired: (offer: any) =>
+        dispatch(handleOfferExpiredFromSignalR(offer)),
+      OfferPaymentUpdated: (offer: any) => {
+        if (offer.serviceRequestId !== activeRequestIdRef.current) return;
+        dispatch(handlePaymentUpdatedFromSignalR(offer));
+      },
+    }),
+    [dispatch, router, role]
+  );
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
-
-      const handlers = {
-        NewOfferReceived: (offer: any) => dispatch(addNewOffer(offer)),
-
-        OfferStatusUpdated: (offer: any) => {
-          console.log("Offer status updated (Customer):", offer);
-          dispatch(updateOfferFromSignalR(offer));
-
-          if (role === "customer") {
-            if (offer.status === "In_Progress") {
-              Alert.alert(
-                "Provider Update",
-                "The service provider has reached your location and started the work."
-              );
-            } else if (offer.status === "Completed") {
-              Alert.alert(
-                "Provider Update",
-                "The service provider has completed the work.",
-                [
-                  {
-                    text: "Go to Home",
-                    onPress: () => router.replace("/(tabs)/home"),
-                  },
-                ]
-              );
-            }
-          }
-        },
-
-        YourOfferAccepted: (offer: any) => {
-          dispatch(clearCurrentOffer());
-          dispatch(handleOfferAcceptedFromSignalR(offer));
-          console.log("Offer accepted (Provider):", offer);
-          if (role === "serviceProvider") {
-            Alert.alert(
-              "Offer Accepted",
-              "Your offer has been accepted by the customer!",
-              [
-                {
-                  text: "Go to Workflow",
-                  onPress: () => {
-                    router.replace({
-                      pathname: "/(serviceProvider)/ServiceProviderWorkflow",
-                      params: {
-                        offerId: offer.id,
-                        serviceRequestId: offer.serviceRequestId,
-                      },
-                    });
-                  },
-                },
-              ]
-            );
-          }
-        },
-
-        YourOfferRejected: (offer: any) =>
-          dispatch(handleOfferRejectedFromSignalR(offer)),
-
-        YourOfferExpired: (offer: any) =>
-          dispatch(handleOfferExpiredFromSignalR(offer)),
-      };
+      activeRequestIdRef.current = requestId || null;
+      handlersRef.current = setupHandlers();
 
       const connectSignalR = async () => {
         const success = await serviceOfferSignalR.connect();
-        if (!success && isActive && reconnectAttempts < MAX_RETRIES) {
-          setReconnectAttempts((prev) => prev + 1);
-          setTimeout(connectSignalR, 2000); // Retry after 2s
+        if (!success && isActive && reconnectAttempts.current < MAX_RETRIES) {
+          reconnectAttempts.current++;
+          setTimeout(connectSignalR, 2000);
           return;
         }
-
         if (!isActive || !success) return;
 
-        // Attach event handlers
-        Object.entries(handlers).forEach(([event, handler]) => {
-          serviceOfferSignalR.on(event as any, handler);
+        Object.entries(handlersRef.current).forEach(([event, handler]) => {
+          serviceOfferSignalR.on(event as any, handler as any);
         });
 
-        // Join groups
         if (providerId)
           await serviceOfferSignalR.joinProviderOffersGroup(providerId);
         if (requestId)
@@ -690,12 +783,12 @@ export const useServiceOfferSignalR = (
 
       return () => {
         isActive = false;
-        Object.entries(handlers).forEach(([event, handler]) => {
-          serviceOfferSignalR.off(event as any, handler);
+        Object.entries(handlersRef.current).forEach(([event, handler]) => {
+          serviceOfferSignalR.off(event as any, handler as any);
         });
         setConnected(false);
       };
-    }, [providerId, requestId, dispatch, role, reconnectAttempts, router])
+    }, [providerId, requestId, setupHandlers])
   );
 
   return { connected };

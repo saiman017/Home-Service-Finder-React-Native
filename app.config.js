@@ -10,10 +10,10 @@ export default {
     scheme: "myapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    ios: {
-      supportsTablet: true,
-      bundleIdentifier: "com.yourcompany.homeservicefinder", // Added iOS bundle identifier
-    },
+    // ios: {
+    //   supportsTablet: true,
+    //   bundleIdentifier: "com.yourcompany.homeservicefinder", // Added iOS bundle identifier
+    // },
     android: {
       package: "com.yourcompany.homeservicefinder", // Added package name for Android
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
