@@ -127,7 +127,9 @@ export type ServiceOfferEventTypes =
   | "OfferStatusUpdated"
   | "YourOfferStatusUpdated"
   | "YourOfferExpired"
-  | "OfferExpired";
+  | "OfferExpired"
+  | "YourOfferPaymentUpdated"
+  | "OfferPaymentUpdated";
 
 class ServiceOfferSignalRService {
   private connection: signalR.HubConnection | null = null;
@@ -143,6 +145,8 @@ class ServiceOfferSignalRService {
     YourOfferStatusUpdated: [],
     YourOfferExpired: [],
     OfferExpired: [],
+    YourOfferPaymentUpdated: [],
+    OfferPaymentUpdated: [],
   };
 
   async connect(): Promise<boolean> {
@@ -206,6 +210,19 @@ class ServiceOfferSignalRService {
 
   private async rejoinGroups() {
     try {
+      // Clear old handlers (for safety)
+      Object.keys(this.eventHandlers).forEach((eventName) => {
+        this.connection!.off(eventName);
+      });
+
+      // Re-attach handlers
+      Object.keys(this.eventHandlers).forEach((eventName) => {
+        this.connection!.on(eventName, (data) => {
+          this.triggerEvent(eventName as ServiceOfferEventTypes, data);
+        });
+      });
+
+      // Rejoin groups
       if (this.providerId) await this.joinProviderOffersGroup(this.providerId);
       if (this.requestId) await this.joinRequestOffersGroup(this.requestId);
     } catch (error) {
@@ -228,7 +245,11 @@ class ServiceOfferSignalRService {
   }
 
   on(eventName: ServiceOfferEventTypes, callback: EventHandler) {
-    this.eventHandlers[eventName].push(callback);
+    // Prevent duplicate handlers
+    const exists = this.eventHandlers[eventName].some((cb) => cb === callback);
+    if (!exists) {
+      this.eventHandlers[eventName].push(callback);
+    }
   }
 
   off(eventName: ServiceOfferEventTypes, callback: EventHandler) {
