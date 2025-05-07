@@ -1,9 +1,15 @@
-// import React from "react";
+// import React, { useState } from "react";
 // import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+// import { useDispatch } from "react-redux";
+// import { router } from "expo-router";
+// import { resetServiceRequestState, clearServiceRequestData } from "@/store/slice/serviceRequest";
+// import { AppDispatch } from "@/store/store";
+
 // interface ServiceOffer {
 //   id: string;
 //   providerName?: string;
 //   offeredPrice: number;
+//   status: string;
 //   // ... other properties
 // }
 
@@ -12,14 +18,33 @@
 //   onAccept: (offerId: string) => void;
 //   onDecline: (offerId: string) => void;
 // }
+
 // const PANEL_MIN_HEIGHT = 80;
 
-// const OfferNotification: React.FC<OfferNotificationProps> = ({
-//   serviceOfferData,
-//   onAccept,
-//   onDecline,
-// }) => {
+// const OfferNotification: React.FC<OfferNotificationProps> = ({ serviceOfferData, onAccept, onDecline }) => {
+//   const dispatch = useDispatch<AppDispatch>();
+//   const [isVisible, setIsVisible] = useState(true);
 //   const { id, providerName, offeredPrice } = serviceOfferData;
+
+//   if (!isVisible || serviceOfferData.status !== "Pending") {
+//     return null;
+//   }
+
+//   const handleAccept = () => {
+//     setIsVisible(false);
+//     onAccept(id);
+//     // Navigate to home page after accepting
+//     setTimeout(() => {
+//       dispatch(resetServiceRequestState());
+//       dispatch(clearServiceRequestData());
+//       router.replace("/(tabs)/home");
+//     }, 1000);
+//   };
+
+//   const handleDecline = () => {
+//     setIsVisible(false);
+//     onDecline(id);
+//   };
 
 //   return (
 //     <View style={styles.container}>
@@ -27,33 +52,30 @@
 //         {/* Provider Basic Info */}
 //         <View style={styles.providerInfo}>
 //           <View style={styles.profileImageContainer}>
-//             <Image
-//               source={require("@/assets/images/electrician.png")}
-//               style={styles.profileImage}
-//             />
+//             <Image source={require("@/assets/images/electrician.png")} style={styles.profileImage} />
 //           </View>
 //           <Text style={styles.providerName}>{providerName}</Text>
 //         </View>
 
-//         {/* Offered Price */}
-//         <View style={styles.priceContainer}>
-//           <Text style={styles.currencySymbol}>₹</Text>
-//           <Text style={styles.price}>{offeredPrice}</Text>
+//         <View>
+//           <View style={styles.priceContainer}>
+//             <Text style={styles.currencySymbol}>NPR</Text>
+//             <Text style={styles.price}>{offeredPrice}</Text>
+//           </View>
+
+//           <View style={styles.priceContainer}>
+//             <Text style={styles.currencySymbol}>NPR</Text>
+//             <Text style={styles.price}>{offeredPrice}</Text>
+//           </View>
 //         </View>
 
 //         {/* Action Buttons */}
 //         <View style={styles.actionButtonsContainer}>
-//           <TouchableOpacity
-//             style={styles.declineButton}
-//             onPress={() => onDecline(id)}
-//           >
+//           <TouchableOpacity style={styles.declineButton} onPress={handleDecline}>
 //             <Text style={styles.declineText}>Decline</Text>
 //           </TouchableOpacity>
 
-//           <TouchableOpacity
-//             style={styles.acceptButton}
-//             onPress={() => onAccept(id)}
-//           >
+//           <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
 //             <Text style={styles.acceptText}>Accept</Text>
 //           </TouchableOpacity>
 //         </View>
@@ -154,18 +176,18 @@
 // });
 
 // export default OfferNotification;
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import { useDispatch } from "react-redux";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
-import {
-  resetServiceRequestState,
-  clearServiceRequestData,
-} from "@/store/slice/serviceRequest";
-import { AppDispatch } from "@/store/store";
+import { resetServiceRequestState, clearServiceRequestData } from "@/store/slice/serviceRequest";
+import { fetchServiceProviderById } from "@/store/slice/serviceProvider";
+import { AppDispatch, RootState } from "@/store/store";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ServiceOffer {
   id: string;
+  serviceProviderId: string;
   providerName?: string;
   offeredPrice: number;
   status: string;
@@ -179,15 +201,27 @@ interface OfferNotificationProps {
 }
 
 const PANEL_MIN_HEIGHT = 80;
+const DEFAULT_PROFILE_IMAGE = require("@/assets/images/electrician.png");
 
-const OfferNotification: React.FC<OfferNotificationProps> = ({
-  serviceOfferData,
-  onAccept,
-  onDecline,
-}) => {
+const OfferNotification: React.FC<OfferNotificationProps> = ({ serviceOfferData, onAccept, onDecline }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [isVisible, setIsVisible] = useState(true);
-  const { id, providerName, offeredPrice } = serviceOfferData;
+  const [isLoading, setIsLoading] = useState(false);
+  const { id, providerName, offeredPrice, serviceProviderId } = serviceOfferData;
+
+  // Get provider data from Redux store
+  const selectedProvider = useSelector((state: RootState) => state.serviceProvider.selectedProvider);
+  const loadingProvider = useSelector((state: RootState) => state.serviceProvider.isLoading);
+
+  // Static rating for now - can be replaced with dynamic data later
+  const providerRating = 4.7;
+
+  useEffect(() => {
+    if (serviceProviderId && !selectedProvider) {
+      setIsLoading(true);
+      dispatch(fetchServiceProviderById(serviceProviderId)).finally(() => setIsLoading(false));
+    }
+  }, [serviceProviderId, dispatch]);
 
   if (!isVisible || serviceOfferData.status !== "Pending") {
     return null;
@@ -209,38 +243,43 @@ const OfferNotification: React.FC<OfferNotificationProps> = ({
     onDecline(id);
   };
 
+  // Get profile picture URL if available
+  const getProfilePicture = () => {
+    if (selectedProvider?.profilePicture) {
+      return { uri: `http://10.0.2.2:5039${selectedProvider.profilePicture}` };
+    }
+    return DEFAULT_PROFILE_IMAGE;
+  };
+
+  // Display the name from the provider data if available, otherwise use the one from the offer
+  const displayName = selectedProvider?.firstName && selectedProvider?.lastName ? `${selectedProvider.firstName} ${selectedProvider.lastName}` : providerName || "Service Provider";
+
   return (
     <View style={styles.container}>
       <View style={styles.notificationCard}>
         {/* Provider Basic Info */}
         <View style={styles.providerInfo}>
           <View style={styles.profileImageContainer}>
-            <Image
-              source={require("@/assets/images/electrician.png")}
-              style={styles.profileImage}
-            />
+            {isLoading || loadingProvider ? <ActivityIndicator size="small" color="#3F63C7" /> : <Image source={getProfilePicture()} style={styles.profileImage} />}
           </View>
-          <Text style={styles.providerName}>{providerName}</Text>
+          <View style={styles.nameRatingContainer}>
+            <Text style={styles.providerName}>{displayName}</Text>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={16} color="#FFB800" />
+              <Text style={styles.ratingText}>{providerRating.toFixed(1)}</Text>
+            </View>
+          </View>
         </View>
 
-        <View>
-          <View style={styles.priceContainer}>
-            <Text style={styles.currencySymbol}>NPR</Text>
-            <Text style={styles.price}>{offeredPrice}</Text>
-          </View>
-
-          <View style={styles.priceContainer}>
-            <Text style={styles.currencySymbol}>NPR</Text>
-            <Text style={styles.price}>{offeredPrice}</Text>
-          </View>
+        {/* Price */}
+        <View style={styles.priceContainer}>
+          <Text style={styles.currencySymbol}>NPR</Text>
+          <Text style={styles.price}>{offeredPrice}</Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity
-            style={styles.declineButton}
-            onPress={handleDecline}
-          >
+          <TouchableOpacity style={styles.declineButton} onPress={handleDecline}>
             <Text style={styles.declineText}>Decline</Text>
           </TouchableOpacity>
 
@@ -274,29 +313,45 @@ const styles = StyleSheet.create({
   providerInfo: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
   profileImageContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "#f0f0f0",
     overflow: "hidden",
-    marginRight: 10,
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   profileImage: {
-    width: 40,
-    height: 40,
+    width: "100%",
+    height: "100%",
+  },
+  nameRatingContainer: {
+    flex: 1,
   },
   providerName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
+    marginBottom: 2,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
   },
   priceContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: 12,
   },
   currencySymbol: {
     fontSize: 18,

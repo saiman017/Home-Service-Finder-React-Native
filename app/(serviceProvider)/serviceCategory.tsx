@@ -1,35 +1,22 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-  SafeAreaView,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, SafeAreaView, ScrollView } from "react-native";
 import React, { useEffect } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
-import {
-  fetchServiceCategories,
-  setSelectedCategoryId,
-} from "@/store/slice/serviceCategory";
+import { fetchServiceCategories, setSelectedCategoryId } from "@/store/slice/serviceCategory";
 
 interface CategoryItem {
   id: string;
   name: string;
   description?: string;
-  imageUrl?: string;
+  categoryImage?: string;
 }
 
 export default function ServiceCategoryScreen() {
   const dispatch = useAppDispatch();
+  const BASE_URL = "http://10.0.2.2:5039";
 
-  const { isLoading, categories, error, serviceCategoryId } = useAppSelector(
-    (state) => state.serviceCategory
-  );
+  const { isLoading, categories, error, serviceCategoryId } = useAppSelector((state) => state.serviceCategory);
 
   useEffect(() => {
     dispatch(fetchServiceCategories());
@@ -69,55 +56,28 @@ export default function ServiceCategoryScreen() {
       const rowItems = [];
       rowItems.push(
         <View key={categories[i].id} style={styles.gridItem}>
-          <TouchableOpacity
-            style={[
-              styles.categoryItem,
-              serviceCategoryId === categories[i].id && styles.selectedItem,
-            ]}
-            onPress={() => handleCategorySelect(categories[i].id)}
-          >
+          <TouchableOpacity style={[styles.categoryItem, serviceCategoryId === categories[i].id && styles.selectedItem]} onPress={() => handleCategorySelect(categories[i].id)}>
             <Image
-              source={
-                categories[i].imageUrl
-                  ? { uri: categories[i].imageUrl }
-                  : require("@/assets/images/gardener.png")
-              }
+              source={categories[i].categoryImage ? { uri: `http://10.0.2.2:5039${categories[i].categoryImage}` } : require("@/assets/images/gardener.png")}
               style={styles.categoryImage}
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={styles.categoryName}>
-            {categories[i].name.charAt(0).toUpperCase() +
-              categories[i].name.slice(1).toLowerCase()}
-          </Text>
+          <Text style={styles.categoryName}>{categories[i].name.charAt(0).toUpperCase() + categories[i].name.slice(1).toLowerCase()}</Text>
         </View>
       );
 
       if (i + 1 < categories.length) {
         rowItems.push(
           <View key={categories[i + 1].id} style={styles.gridItem}>
-            <TouchableOpacity
-              style={[
-                styles.categoryItem,
-                serviceCategoryId === categories[i + 1].id &&
-                  styles.selectedItem,
-              ]}
-              onPress={() => handleCategorySelect(categories[i + 1].id)}
-            >
+            <TouchableOpacity style={[styles.categoryItem, serviceCategoryId === categories[i + 1].id && styles.selectedItem]} onPress={() => handleCategorySelect(categories[i + 1].id)}>
               <Image
-                source={
-                  categories[i + 1].imageUrl
-                    ? { uri: categories[i + 1].imageUrl }
-                    : require("@/assets/images/gardener.png")
-                }
+                source={categories[i + 1].categoryImage ? { uri: `http://10.0.2.2:5039${categories[i + 1].categoryImage}` } : require("@/assets/images/gardener.png")}
                 style={styles.categoryImage}
                 resizeMode="contain"
               />
             </TouchableOpacity>
-            <Text style={styles.categoryName}>
-              {categories[i + 1].name.charAt(0).toUpperCase() +
-                categories[i + 1].name.slice(1).toLowerCase()}
-            </Text>
+            <Text style={styles.categoryName}>{categories[i + 1].name.charAt(0).toUpperCase() + categories[i + 1].name.slice(1).toLowerCase()}</Text>
           </View>
         );
       } else {
@@ -143,9 +103,7 @@ export default function ServiceCategoryScreen() {
               <Ionicons name="arrow-back" size={24} color="black" />
             </TouchableOpacity>
             <Text style={styles.title}>Select Service Category</Text>
-            <Text style={styles.subtitle}>
-              Choose the category that best describes your service
-            </Text>
+            <Text style={styles.subtitle}>Choose the category that best describes your service</Text>
           </View>
 
           {isLoading ? (
@@ -160,14 +118,7 @@ export default function ServiceCategoryScreen() {
             <View style={styles.gridContainer}>{renderCategoryGrid()}</View>
           )}
 
-          <TouchableOpacity
-            style={[
-              styles.continueButton,
-              !serviceCategoryId && styles.disabledButton,
-            ]}
-            onPress={handleContinue}
-            disabled={!serviceCategoryId}
-          >
+          <TouchableOpacity style={[styles.continueButton, !serviceCategoryId && styles.disabledButton]} onPress={handleContinue} disabled={!serviceCategoryId}>
             <Text style={styles.continueButtonText}>Next</Text>
           </TouchableOpacity>
         </View>

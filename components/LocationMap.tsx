@@ -221,15 +221,7 @@
 // }
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import {
-  View,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import * as ExpoLocation from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
@@ -250,25 +242,16 @@ interface LocationMapProps {
   initialRegion?: Region;
 }
 
-export default function LocationMap({
-  onLocationSelect,
-  initialRegion,
-}: LocationMapProps) {
+export default function LocationMap({ onLocationSelect, initialRegion }: LocationMapProps) {
   const dispatch = useDispatch<AppDispatch>();
   const mapRef = useRef<MapView | null>(null);
-  const locationSubscription = useRef<ExpoLocation.LocationSubscription | null>(
-    null
-  );
+  const locationSubscription = useRef<ExpoLocation.LocationSubscription | null>(null);
 
   const [region, setRegion] = useState<Region | null>(initialRegion || null);
   const [markerPosition, setMarkerPosition] = useState<{
     latitude: number;
     longitude: number;
-  } | null>(
-    initialRegion
-      ? { latitude: initialRegion.latitude, longitude: initialRegion.longitude }
-      : null
-  );
+  } | null>(initialRegion ? { latitude: initialRegion.latitude, longitude: initialRegion.longitude } : null);
   const [address, setAddress] = useState("");
   const [cityAndPostal, setCityAndPostal] = useState({
     city: "",
@@ -280,33 +263,27 @@ export default function LocationMap({
   const [mapReady, setMapReady] = useState(false);
 
   // Fetch address from coordinates
-  const fetchAddressFromCoordinates = useCallback(
-    async (latitude: number, longitude: number) => {
-      try {
-        setAddressLoading(true);
+  const fetchAddressFromCoordinates = useCallback(async (latitude: number, longitude: number) => {
+    try {
+      setAddressLoading(true);
 
-        const result = await googleMapsService.reverseGeocode(
-          latitude,
-          longitude
-        );
+      const result = await googleMapsService.reverseGeocode(latitude, longitude);
 
-        setAddress(result.address);
-        setCityAndPostal({
-          city: result.city,
-          postalCode: result.postalCode,
-        });
+      setAddress(result.address);
+      setCityAndPostal({
+        city: result.city,
+        postalCode: result.postalCode,
+      });
 
-        return result;
-      } catch (error) {
-        console.error("Error fetching address:", error);
-        Alert.alert("Error", "Failed to get address for this location");
-        return { address: "Unknown location", city: "", postalCode: "" };
-      } finally {
-        setAddressLoading(false);
-      }
-    },
-    []
-  );
+      return result;
+    } catch (error) {
+      console.error("Error fetching address:", error);
+      Alert.alert("Error", "Failed to get address for this location");
+      return { address: "Unknown location", city: "", postalCode: "" };
+    } finally {
+      setAddressLoading(false);
+    }
+  }, []);
 
   // Request location permission
   const requestLocationPermission = useCallback(async () => {
@@ -315,10 +292,7 @@ export default function LocationMap({
     setLocationPermission(granted);
 
     if (!granted) {
-      Alert.alert(
-        "Permission Denied",
-        "Enable location permissions in settings"
-      );
+      Alert.alert("Permission Denied", "Enable location permissions in settings");
     }
 
     return granted;
@@ -362,28 +336,24 @@ export default function LocationMap({
         distanceInterval: 10,
       };
 
-      locationSubscription.current = await ExpoLocation.watchPositionAsync(
-        options,
-        async (locationUpdate) => {
-          const { latitude: newLat, longitude: newLong } =
-            locationUpdate.coords;
-          const updatedRegion = {
-            latitude: newLat,
-            longitude: newLong,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          };
+      locationSubscription.current = await ExpoLocation.watchPositionAsync(options, async (locationUpdate) => {
+        const { latitude: newLat, longitude: newLong } = locationUpdate.coords;
+        const updatedRegion = {
+          latitude: newLat,
+          longitude: newLong,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        };
 
-          setRegion(updatedRegion);
-          setMarkerPosition({ latitude: newLat, longitude: newLong });
+        setRegion(updatedRegion);
+        setMarkerPosition({ latitude: newLat, longitude: newLong });
 
-          if (mapRef.current) {
-            mapRef.current.animateToRegion(updatedRegion, 500);
-          }
-
-          await fetchAddressFromCoordinates(newLat, newLong);
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(updatedRegion, 500);
         }
-      );
+
+        await fetchAddressFromCoordinates(newLat, newLong);
+      });
     } catch (error) {
       console.error("Error getting location:", error);
       Alert.alert("Error", "Failed to get your current location");
@@ -395,10 +365,7 @@ export default function LocationMap({
   // Cleanup location subscription on unmount
   useEffect(() => {
     if (initialRegion && mapReady) {
-      fetchAddressFromCoordinates(
-        initialRegion.latitude,
-        initialRegion.longitude
-      );
+      fetchAddressFromCoordinates(initialRegion.latitude, initialRegion.longitude);
     } else if (!initialRegion && mapReady) {
       startLocationTracking();
     }
@@ -408,12 +375,7 @@ export default function LocationMap({
         locationSubscription.current.remove();
       }
     };
-  }, [
-    mapReady,
-    initialRegion,
-    startLocationTracking,
-    fetchAddressFromCoordinates,
-  ]);
+  }, [mapReady, initialRegion, startLocationTracking, fetchAddressFromCoordinates]);
 
   // Handle map ready
   const handleMapReady = () => {
@@ -454,7 +416,7 @@ export default function LocationMap({
   if (loading && !markerPosition) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F8C52B" />
+        <ActivityIndicator size="large" color="#3F63C7" />
         <Text style={styles.loadingText}>Getting your location...</Text>
       </View>
     );
@@ -463,25 +425,13 @@ export default function LocationMap({
   return (
     <View style={styles.container}>
       {region && (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={region}
-          onPress={handleMapPress}
-          showsUserLocation={locationPermission}
-          onMapReady={handleMapReady}
-        >
+        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={region} onPress={handleMapPress} showsUserLocation={locationPermission} onMapReady={handleMapReady}>
           {markerPosition && <Marker coordinate={markerPosition} />}
         </MapView>
       )}
 
       {/* My Location Button */}
-      <TouchableOpacity
-        style={styles.myLocationButton}
-        onPress={startLocationTracking}
-        disabled={!locationPermission}
-      >
+      <TouchableOpacity style={styles.myLocationButton} onPress={startLocationTracking} disabled={!locationPermission}>
         <Ionicons name="location-outline" size={24} color="#3F63C7" />
       </TouchableOpacity>
 
@@ -489,7 +439,7 @@ export default function LocationMap({
       <View style={styles.addressContainer}>
         <Ionicons name="location" size={20} color="#333" />
         {addressLoading ? (
-          <ActivityIndicator size="small" color="#F8C52B" />
+          <ActivityIndicator size="small" color="#3F63C7" />
         ) : (
           <Text style={styles.addressText} numberOfLines={2}>
             {address || "Select a location"}
@@ -499,11 +449,7 @@ export default function LocationMap({
 
       {/* Confirm Button */}
       <TouchableOpacity
-        style={[
-          styles.confirmButton,
-          (addressLoading || !address || !markerPosition) &&
-            styles.disabledButton,
-        ]}
+        style={[styles.confirmButton, (addressLoading || !address || !markerPosition) && styles.disabledButton]}
         onPress={handleConfirmLocation}
         disabled={addressLoading || !address || !markerPosition}
       >

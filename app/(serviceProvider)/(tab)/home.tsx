@@ -163,18 +163,7 @@
 //   },
 // });
 import React, { useEffect, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  StatusBar,
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, ActivityIndicator, Dimensions, FlatList } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -221,9 +210,7 @@ export default function Home() {
   const { userId } = useSelector((state: RootState) => state.auth);
   const currentUser = useSelector(selectUserById) || null;
   const { connected } = useServiceOfferSignalR(userId);
-  const { statistics, isLoading } = useSelector(
-    (state: RootState) => state.serviceProvider
-  );
+  const { statistics, isLoading } = useSelector((state: RootState) => state.serviceProvider);
 
   // For chart carousel
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -288,13 +275,11 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [activeSlideIndex]);
 
-  const handleViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: any[] }) => {
-      if (viewableItems.length > 0) {
-        setActiveSlideIndex(viewableItems[0].index);
-      }
+  const handleViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems.length > 0) {
+      setActiveSlideIndex(viewableItems[0].index);
     }
-  ).current;
+  }).current;
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
@@ -308,11 +293,7 @@ export default function Home() {
     router.push("/(users)/(location)/setAddress");
   };
 
-  const displayAddress = currentLocation
-    ? `${currentLocation.address.slice(0, 30)}${
-        currentLocation.address.length > 30 ? "..." : ""
-      }`
-    : "Set your location";
+  const displayAddress = currentLocation ? `${currentLocation.address.slice(0, 30)}${currentLocation.address.length > 30 ? "..." : ""}` : "Set your location";
 
   // Chart Carousel Item
   const renderChartItem = ({ item }: { item: ChartData }) => (
@@ -332,8 +313,7 @@ export default function Home() {
             style={[
               styles.paginationDot,
               {
-                backgroundColor:
-                  index === activeSlideIndex ? "#525050" : "#DDDDDD",
+                backgroundColor: index === activeSlideIndex ? "#525050" : "#DDDDDD",
               },
             ]}
           />
@@ -347,11 +327,7 @@ export default function Home() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image
-            source={require("@/assets/images/logo2.png")}
-            style={{ width: 115, height: 75 }}
-            resizeMode="contain"
-          />
+          <Image source={require("@/assets/images/logo2.png")} style={{ width: 115, height: 75 }} resizeMode="contain" />
         </View>
         <TouchableOpacity onPress={goToProfile}>
           {currentUser?.profilePicture ? (
@@ -363,11 +339,7 @@ export default function Home() {
             />
           ) : (
             <View style={styles.profileImage}>
-              <Text style={styles.initialsText}>
-                {`${currentUser?.firstName?.[0] || ""}${
-                  currentUser?.lastName?.[0] || ""
-                }`}
-              </Text>
+              <Text style={styles.initialsText}>{`${currentUser?.firstName?.[0] || ""}${currentUser?.lastName?.[0] || ""}`}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -380,14 +352,11 @@ export default function Home() {
         <Ionicons name="chevron-forward" size={13} color="#525050" />
       </TouchableOpacity>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Stats Boxes */}
         {stats.isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#F8C52B" />
+            <ActivityIndicator size="large" color="#3F63C7" />
           </View>
         ) : (
           <>
@@ -395,28 +364,14 @@ export default function Home() {
               <View style={styles.statsRow}>
                 <View style={[styles.statsBox, styles.totalEarningsBox]}>
                   <Text style={styles.statsTitle}>Total Earnings</Text>
-                  <Text style={styles.statsValue}>
-                    NPR {statistics?.totalEarnings}
-                  </Text>
-                  <Ionicons
-                    name="cash-outline"
-                    size={24}
-                    color="#FFFFFF"
-                    style={styles.statsIcon}
-                  />
+                  <Text style={styles.statsValue}>NPR {statistics?.totalEarnings}</Text>
+                  <Ionicons name="cash-outline" size={24} color="#FFFFFF" style={styles.statsIcon} />
                 </View>
 
                 <View style={[styles.statsBox, styles.totalCompletedBox]}>
                   <Text style={styles.statsTitle}>Total Completed</Text>
-                  <Text style={styles.statsValue}>
-                    {statistics?.totalCompletedOffers}
-                  </Text>
-                  <Ionicons
-                    name="checkmark-done-circle-outline"
-                    size={24}
-                    color="#FFFFFF"
-                    style={styles.statsIcon}
-                  />
+                  <Text style={styles.statsValue}>{statistics?.totalCompletedOffers}</Text>
+                  <Ionicons name="checkmark-done-circle-outline" size={24} color="#FFFFFF" style={styles.statsIcon} />
                 </View>
               </View>
 
@@ -424,28 +379,14 @@ export default function Home() {
               <View style={styles.statsRow}>
                 <View style={[styles.statsBox, styles.todayEarningsBox]}>
                   <Text style={styles.statsTitle}>Today's Earnings</Text>
-                  <Text style={styles.statsValue}>
-                    NPR {statistics?.totalRevenueToday}
-                  </Text>
-                  <Ionicons
-                    name="today-outline"
-                    size={24}
-                    color="#FFFFFF"
-                    style={styles.statsIcon}
-                  />
+                  <Text style={styles.statsValue}>NPR {statistics?.totalRevenueToday}</Text>
+                  <Ionicons name="today-outline" size={24} color="#FFFFFF" style={styles.statsIcon} />
                 </View>
 
                 <View style={[styles.statsBox, styles.todayCompletedBox]}>
                   <Text style={styles.statsTitle}>Today's Completed</Text>
-                  <Text style={styles.statsValue}>
-                    {statistics?.totalOffersCompletedToday}
-                  </Text>
-                  <Ionicons
-                    name="star-outline"
-                    size={24}
-                    color="#FFFFFF"
-                    style={styles.statsIcon}
-                  />
+                  <Text style={styles.statsValue}>{statistics?.totalOffersCompletedToday}</Text>
+                  <Ionicons name="star-outline" size={24} color="#FFFFFF" style={styles.statsIcon} />
                 </View>
               </View>
             </View>

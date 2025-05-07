@@ -699,10 +699,7 @@ import { useFocusEffect } from "@react-navigation/native";
 
 //   return { connected };
 // };
-export const useServiceOfferSignalR = (
-  providerId?: string | null,
-  requestId?: string | null
-) => {
+export const useServiceOfferSignalR = (providerId?: string | null, requestId?: string | null) => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { role } = useSelector((state: RootState) => state.auth);
@@ -740,10 +737,8 @@ export const useServiceOfferSignalR = (
           ]);
         }
       },
-      YourOfferRejected: (offer: any) =>
-        dispatch(handleOfferRejectedFromSignalR(offer)),
-      YourOfferExpired: (offer: any) =>
-        dispatch(handleOfferExpiredFromSignalR(offer)),
+      YourOfferRejected: (offer: any) => dispatch(handleOfferRejectedFromSignalR(offer)),
+      YourOfferExpired: (offer: any) => dispatch(handleOfferExpiredFromSignalR(offer)),
       OfferPaymentUpdated: (offer: any) => {
         if (offer.serviceRequestId !== activeRequestIdRef.current) return;
         dispatch(handlePaymentUpdatedFromSignalR(offer));
@@ -771,10 +766,8 @@ export const useServiceOfferSignalR = (
           serviceOfferSignalR.on(event as any, handler as any);
         });
 
-        if (providerId)
-          await serviceOfferSignalR.joinProviderOffersGroup(providerId);
-        if (requestId)
-          await serviceOfferSignalR.joinRequestOffersGroup(requestId);
+        if (providerId) await serviceOfferSignalR.joinProviderOffersGroup(providerId);
+        if (requestId) await serviceOfferSignalR.joinRequestOffersGroup(requestId);
 
         if (isActive) setConnected(true);
       };

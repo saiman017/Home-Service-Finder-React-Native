@@ -1,19 +1,7 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from "react-native";
 import Header from "@/components/Header";
-import {
-  Ionicons,
-  Entypo,
-  MaterialIcons,
-  FontAwesome,
-} from "@expo/vector-icons";
+import { Ionicons, Entypo, MaterialIcons, FontAwesome } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/store/slice/auth";
 import { router } from "expo-router";
@@ -49,10 +37,7 @@ export default function AccountAndSettings() {
   return (
     <View style={styles.container}>
       <Header title="Account & Settings" showBackButton={false} />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           {/* Profile Section */}
           <View style={styles.profile}>
@@ -66,47 +51,30 @@ export default function AccountAndSettings() {
                 />
               ) : (
                 <View style={styles.profileImagePlaceholder}>
-                  <Text
-                    style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}
-                  >
-                    {currentUser
-                      ? `${currentUser.firstName?.[0] || ""}${
-                          currentUser.lastName?.[0] || ""
-                        }`
-                      : ""}
-                  </Text>
+                  <Text style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}>{currentUser ? `${currentUser.firstName?.[0] || ""}${currentUser.lastName?.[0] || ""}` : ""}</Text>
                 </View>
               )}
 
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>
-                  {currentUser
-                    ? `${currentUser.firstName} ${currentUser.lastName}`
-                    : "Loading..."}
-                </Text>
-                <Text style={styles.profileContact}>
-                  {currentUser?.phoneNumber || ""}
-                </Text>
+                <Text style={styles.profileName}>{currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : "Loading..."}</Text>
+                <Text style={styles.profileContact}>{currentUser?.phoneNumber || ""}</Text>
               </View>
             </View>
           </View>
 
           {/* Notification */}
-          <View style={styles.singleBar}>
+          {/* <View style={styles.singleBar}>
             <TouchableOpacity style={styles.bar}>
               <Ionicons name="notifications" size={24} color="#525050" />
               <Text style={styles.barText}>Notification</Text>
               <Ionicons name="chevron-forward" size={20} color="#525050" />
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* Account Section */}
           <View style={styles.account}>
             <Text style={styles.subtitile}>Account</Text>
-            <TouchableOpacity
-              style={styles.bar}
-              onPress={() => handleProfile()}
-            >
+            <TouchableOpacity style={styles.bar} onPress={() => handleProfile()}>
               <Ionicons name="person-circle" size={24} color="#525050" />
               <Text style={styles.barText}>Profile</Text>
             </TouchableOpacity>

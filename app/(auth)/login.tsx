@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "@/store/store";
 import { login, setOtpRequired } from "@/store/slice/auth";
@@ -30,14 +19,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
-  const {
-    accessToken,
-    isAuthenticated,
-    role,
-    isEmailVerified,
-    userId,
-    otpRequired,
-  } = useSelector((state: RootState) => state.auth);
+  const { accessToken, isAuthenticated, role, isEmailVerified, userId, otpRequired } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     dispatch(setOtpRequired(false));
@@ -57,11 +39,7 @@ export default function Login() {
       console.log("User authenticated, redirecting to home...");
       router.replace("/(tabs)/home");
       return;
-    } else if (
-      isAuthenticated &&
-      accessToken &&
-      role?.toLowerCase() == "serviceprovider"
-    ) {
+    } else if (isAuthenticated && accessToken && role?.toLowerCase() == "serviceprovider") {
       dispatch(clearEmail());
       dispatch(serviceProviderClearEmail());
       dispatch(LoginEmail());
@@ -181,10 +159,7 @@ export default function Login() {
       ).unwrap();
     } catch (error: any) {
       console.error("Login error:", error);
-      if (
-        typeof error === "string" &&
-        error.includes("Failed to decode login response")
-      ) {
+      if (typeof error === "string" && error.includes("Failed to decode login response")) {
         Alert.alert("Login Unsuccessful", "Invalid email or password");
       } else {
         Alert.alert("Login Unsuccessfully", error.toString());
@@ -195,20 +170,12 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <View style={styles.inner}>
         <View style={styles.header}>
-          <Image
-            source={require("@/assets/images/Home_Service_Finder_Logo.png")}
-            style={styles.logo}
-          />
+          <Image source={require("@/assets/images/Home_Service_Finder_Logo.png")} style={styles.logo} />
           <Text style={styles.title}>Sign in to your Account</Text>
-          <Text style={styles.subtitle}>
-            Enter your email and password to log in
-          </Text>
+          <Text style={styles.subtitle}>Enter your email and password to log in</Text>
         </View>
 
         <View style={styles.form}>
@@ -222,17 +189,10 @@ export default function Login() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {emailError ? (
-            <Text style={styles.errorText}>{emailError}</Text>
-          ) : null}
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
           <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
-          <View
-            style={[
-              styles.passwordContainer,
-              passwordError ? styles.inputError : null,
-            ]}
-          >
+          <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
             <TextInput
               style={styles.passwordInput}
               placeholder="Password"
@@ -243,16 +203,10 @@ export default function Login() {
               autoCapitalize="none"
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye" : "eye-off"}
-                size={24}
-                color="#808080"
-              />
+              <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#808080" />
             </TouchableOpacity>
           </View>
-          {passwordError ? (
-            <Text style={styles.errorText}>{passwordError}</Text>
-          ) : null}
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
           <View style={styles.forgotPasswordContainer}>
             <TouchableOpacity
@@ -262,40 +216,24 @@ export default function Login() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Log In</Text>
-            )}
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.loginButtonText}>Log In</Text>}
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <TouchableOpacity>
-            <Text
-              style={styles.signupText}
-              onPress={() => router.push("/(auth)/SignUp")}
-            >
+            <Text style={styles.signupText} onPress={() => router.push("/(auth)/SignUp")}>
               Sign Up
             </Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Want to be register as service provider?{" "}
-          </Text>
+          <Text style={styles.footerText}>Want to be register as service provider? </Text>
           <TouchableOpacity>
-            <Text
-              style={styles.signupText}
-              onPress={() => router.push("/(serviceProvider)/serviceCategory")}
-            >
+            <Text style={styles.signupText} onPress={() => router.push("/(serviceProvider)/serviceCategory")}>
               Click here
             </Text>
           </TouchableOpacity>
@@ -384,7 +322,7 @@ const styles = StyleSheet.create({
   loginButton: {
     height: 55,
     backgroundColor: "#3F63C7",
-    borderRadius: 10,
+    borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
   },

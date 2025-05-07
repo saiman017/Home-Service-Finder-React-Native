@@ -1,15 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  SafeAreaView,
-  StatusBar,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar, ActivityIndicator } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/store/slice/auth";
 import { fetchServiceCategories } from "@/store/slice/serviceCategory";
@@ -19,9 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function Home() {
   const dispatch = useDispatch();
-  const { categories, isLoading, error } = useSelector(
-    (state: RootState) => state.serviceCategory
-  );
+  const { categories, isLoading, error } = useSelector((state: RootState) => state.serviceCategory);
 
   useEffect(() => {
     dispatch(fetchServiceCategories() as any);
@@ -54,33 +42,21 @@ export default function Home() {
         {/* Header with Logo and Profile */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Image
-              source={require("@/assets/images/logo2.png")}
-              style={{ width: 115, height: 75 }}
-              resizeMode="contain"
-            />
+            <Image source={require("@/assets/images/logo2.png")} style={{ width: 115, height: 75 }} resizeMode="contain" />
           </View>
           <TouchableOpacity onPress={goToProfile}>
-            <Image
-              source={require("@/assets/images/gardener.png")}
-              style={styles.profileImage}
-            />
+            <Image source={require("@/assets/images/gardener.png")} style={styles.profileImage} />
           </TouchableOpacity>
         </View>
 
         {/* Location Bar */}
         <TouchableOpacity style={styles.locationBar}>
           <Ionicons name="location" size={13} color="#525050" />
-          <Text style={styles.locationText}>
-            Thapathali boys Hostel, School Gali
-          </Text>
+          <Text style={styles.locationText}>Thapathali boys Hostel, School Gali</Text>
           <Ionicons name="chevron-forward" size={13} color="#525050" />
         </TouchableOpacity>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Service Categories */}
           <View style={styles.serviceSection}>
             {isLoading ? (
@@ -90,16 +66,9 @@ export default function Home() {
             ) : (
               <View style={styles.serviceGrid}>
                 {categories.map((service: ServiceCategory) => (
-                  <TouchableOpacity
-                    key={service._id}
-                    style={styles.serviceItem}
-                    onPress={() => navigateToService(service)}
-                  >
+                  <TouchableOpacity key={service._id} style={styles.serviceItem} onPress={() => navigateToService(service)}>
                     <View style={styles.serviceIconContainer}>
-                      <Image
-                        source={{ uri: service.icon }}
-                        style={styles.serviceIcon}
-                      />
+                      <Image source={{ uri: service.icon }} style={styles.serviceIcon} />
                     </View>
                     <Text style={styles.serviceText}>{service.name}</Text>
                   </TouchableOpacity>
@@ -116,18 +85,11 @@ export default function Home() {
                 <View style={styles.featureTextContainer}>
                   <Text style={styles.featureTitle}>Guide to Create</Text>
                   <Text style={styles.featureTitle}>
-                    On-Demand{" "}
-                    <Text style={styles.highlightText}>Home Services App</Text>
+                    On-Demand <Text style={styles.highlightText}>Home Services App</Text>
                   </Text>
-                  <Text style={styles.featureTitle}>
-                    Features & Cost Estimation
-                  </Text>
+                  <Text style={styles.featureTitle}>Features & Cost Estimation</Text>
                 </View>
-                <Image
-                  source={require("@/assets/images/gardener.png")}
-                  style={styles.featureImage}
-                  resizeMode="contain"
-                />
+                <Image source={require("@/assets/images/gardener.png")} style={styles.featureImage} resizeMode="contain" />
               </View>
             </TouchableOpacity>
           </View>
@@ -137,10 +99,7 @@ export default function Home() {
             <Text style={styles.sectionTitle}>Orders</Text>
             <View style={styles.ordersContainer}>
               <Text style={styles.noOrdersText}>No order till now....</Text>
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-              >
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
@@ -270,7 +229,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   highlightText: {
-    color: "#F8C52B",
+    color: "#3F63C7",
   },
   featureImage: {
     width: 120,
