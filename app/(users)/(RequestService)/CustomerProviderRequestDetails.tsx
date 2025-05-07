@@ -1,18 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
-  Animated,
-  PanResponder,
-  Dimensions,
-  ScrollView,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, SafeAreaView, Animated, PanResponder, Dimensions, ScrollView, Image } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import * as ExpoLocation from "expo-location";
@@ -21,34 +8,44 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getServiceRequestById } from "@/store/slice/serviceRequest";
-import {
-  clearOffers,
-  clearRequestsWithOffers,
-  getOfferById,
-  resetServiceOfferState,
-} from "@/store/slice/serviceOffer";
+import { clearOffers, clearRequestsWithOffers, getOfferById, resetServiceOfferState } from "@/store/slice/serviceOffer";
+import { fetchServiceProviderById } from "@/store/slice/serviceProvider";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { clearCurrentOffer } from "@/store/slice/serviceOffer";
+import Constants from "expo-constants";
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAPS_API_KEY ?? "default_value";
 
 // Panel dimensions
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 400;
 const PANEL_MAX_HEIGHT = height * 0.6;
 const DRAG_THRESHOLD = 50;
+const DEFAULT_PROFILE_IMAGE = require("@/assets/images/electrician.png");
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
 export default function CustomerRequestDetails() {
-  const { offerId, serviceRequestId } = useLocalSearchParams();
   const dispatch = useDispatch<AppDispatch>();
+
+  const { offerId, serviceRequestId } = useLocalSearchParams();
+  useEffect(() => {
+    if (!serviceRequestId || Array.isArray(serviceRequestId)) return;
+
+    dispatch(getServiceRequestById(serviceRequestId));
+  }, [serviceRequestId]);
+
   const { userId } = useSelector((state: RootState) => state.auth);
   const [serviceRequest, setServiceRequest] = useState<any>(null);
   // const [offerDetails, setOfferDetails] = useState<any>(null);
   const offerDetails = useSelector(
     (state: RootState) => state.serviceOffer.currentOffer // or relevant slice
   );
+
+  // Get provider data from Redux store
+  const selectedProvider = useSelector((state: RootState) => state.serviceProvider.selectedProvider);
+  const loadingProvider = useSelector((state: RootState) => state.serviceProvider.isLoading);
 
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
@@ -68,10 +65,7 @@ export default function CustomerRequestDetails() {
   const animatedHeight = useRef(new Animated.Value(PANEL_MIN_HEIGHT)).current;
 
   // SignalR connections
-  const { connected: requestSignalRConnected } = useServiceRequestSignalR(
-    undefined,
-    userId as string
-  );
+  const { connected: requestSignalRConnected } = useServiceRequestSignalR(undefined, userId as string);
   useServiceOfferSignalR(null, serviceRequestId as string);
 
   // Location tracking subscription
@@ -87,9 +81,7 @@ export default function CustomerRequestDetails() {
           await dispatch(getOfferById(offerId as string)).unwrap();
         }
         if (serviceRequestId) {
-          const requestResponse = await dispatch(
-            getServiceRequestById(serviceRequestId as string)
-          ).unwrap();
+          const requestResponse = await dispatch(getServiceRequestById(serviceRequestId as string)).unwrap();
           setServiceRequest(requestResponse);
         }
 
@@ -111,20 +103,12 @@ export default function CustomerRequestDetails() {
     };
   }, [offerId, serviceRequestId, dispatch]);
 
-  // useEffect(() => {
-  //   if (serviceRequest?.status === "Completed") {
-  //     Alert.alert(
-  //       "Service Completed",
-  //       "The service request has been marked as completed.",
-  //       [
-  //         {
-  //           text: "Return Home",
-  //           onPress: () => router.replace("/(tabs)/home"),
-  //         },
-  //       ]
-  //     );
-  //   }
-  // }, [serviceRequest?.status]);
+  // Fetch provider details when offerDetails change
+  useEffect(() => {
+    if (offerDetails?.serviceProviderId) {
+      dispatch(fetchServiceProviderById(offerDetails.serviceProviderId));
+    }
+  }, [offerDetails?.serviceProviderId, dispatch]);
 
   useEffect(() => {
     animatedHeight.addListener(({ value }) => {
@@ -143,43 +127,40 @@ export default function CustomerRequestDetails() {
 
     if (offerDetails.status === "In_Progress") {
       alertActiveRef.current = true;
-      Alert.alert(
-        "Provider Arrived",
-        "The service provider has started work.",
-        [{ text: "OK", onPress: () => (alertActiveRef.current = false) }]
-      );
+      Alert.alert("Provider Arrived", "The service provider has started work.", [{ text: "OK", onPress: () => (alertActiveRef.current = false) }]);
     } else if (offerDetails.paymentStatus === true) {
       alertActiveRef.current = true;
       Alert.alert("Payment Received", "Thank you for your payment.", [
         {
-          text: "Go to Home",
+          text: "ok",
           onPress: () => {
             alertActiveRef.current = false;
             dispatch(resetServiceOfferState());
             dispatch(clearCurrentOffer());
             dispatch(clearOffers());
             dispatch(clearRequestsWithOffers());
-            router.replace("/(tabs)/home");
+
+            // Navigate to rating form with the serviceProviderId and serviceRequestId
+            router.replace({
+              pathname: "/(users)/(rating)/rating",
+              params: {
+                serviceProviderId: offerDetails.serviceProviderId,
+                serviceRequestId: serviceRequestId as string,
+              },
+            });
           },
         },
       ]);
     } else if (offerDetails.status === "Completed") {
       alertActiveRef.current = true;
-      Alert.alert(
-        "Provider Completed",
-        "The provider has completed the work.",
-        [{ text: "OK", onPress: () => (alertActiveRef.current = false) }]
-      );
+      Alert.alert("Provider Completed", "The provider has completed the work.", [{ text: "OK", onPress: () => (alertActiveRef.current = false) }]);
     }
   }, [offerDetails?.status, offerDetails?.paymentStatus]);
 
   const requestLocationPermissionAndStartTracking = async () => {
     const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        "Location permission is required to show distance to service provider."
-      );
+      Alert.alert("Permission Denied", "Location permission is required to show distance to service provider.");
       return;
     }
 
@@ -217,27 +198,16 @@ export default function CustomerRequestDetails() {
 
   // Update map and calculate route when currentLocation or serviceRequest changes
   useEffect(() => {
-    if (
-      currentLocation &&
-      serviceRequest &&
-      serviceRequest.locationLatitude &&
-      serviceRequest.locationLongitude
-    ) {
+    if (currentLocation && serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude) {
       // Calculate new route
       calculateDetailedRoute();
 
       // Update map region to show both points
-      const midLat =
-        (currentLocation.latitude + serviceRequest.locationLatitude) / 2;
-      const midLng =
-        (currentLocation.longitude + serviceRequest.locationLongitude) / 2;
+      const midLat = (currentLocation.latitude + serviceRequest.locationLatitude) / 2;
+      const midLng = (currentLocation.longitude + serviceRequest.locationLongitude) / 2;
 
-      const latDelta =
-        Math.abs(currentLocation.latitude - serviceRequest.locationLatitude) *
-        3;
-      const lngDelta =
-        Math.abs(currentLocation.longitude - serviceRequest.locationLongitude) *
-        3;
+      const latDelta = Math.abs(currentLocation.latitude - serviceRequest.locationLatitude) * 3;
+      const lngDelta = Math.abs(currentLocation.longitude - serviceRequest.locationLongitude) * 3;
 
       setMapRegion({
         latitude: midLat,
@@ -249,12 +219,7 @@ export default function CustomerRequestDetails() {
   }, [currentLocation, serviceRequest]);
 
   const calculateDetailedRoute = async () => {
-    if (
-      !currentLocation ||
-      !serviceRequest ||
-      !serviceRequest.locationLatitude ||
-      !serviceRequest.locationLongitude
-    ) {
+    if (!currentLocation || !serviceRequest || !serviceRequest.locationLatitude || !serviceRequest.locationLongitude) {
       return;
     }
 
@@ -304,10 +269,7 @@ export default function CustomerRequestDetails() {
         const dy = gesture.dy - lastY.current;
         lastY.current = gesture.dy;
 
-        const newHeight = Math.max(
-          PANEL_MIN_HEIGHT,
-          Math.min(PANEL_MAX_HEIGHT, panelHeight - dy)
-        );
+        const newHeight = Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, panelHeight - dy));
         animatedHeight.setValue(newHeight);
       },
       onPanResponderRelease: (_, gesture) => {
@@ -326,10 +288,7 @@ export default function CustomerRequestDetails() {
           }).start();
           setIsPanelExpanded(false);
         } else {
-          const toValue =
-            panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2
-              ? PANEL_MAX_HEIGHT
-              : PANEL_MIN_HEIGHT;
+          const toValue = panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2 ? PANEL_MAX_HEIGHT : PANEL_MIN_HEIGHT;
 
           Animated.spring(animatedHeight, {
             toValue,
@@ -342,24 +301,22 @@ export default function CustomerRequestDetails() {
     })
   ).current;
 
-  const renderRouteOverview = () => {
-    if (!serviceRequest || !serviceRequest.locationAddress) return null;
-    return (
-      <View style={styles.routeOverviewContainer}>
-        <View style={styles.routeEndpointContainer}>
-          <View style={styles.endpointDot} />
-          <Text style={styles.currentLocationText}>Current Location</Text>
-        </View>
-        <View style={styles.routeLine} />
-        <View style={styles.routeEndpointContainer}>
-          <View style={[styles.endpointDot, styles.destinationDot]} />
-          <Text style={styles.destinationText}>
-            {serviceRequest.locationAddress}
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  // const renderRouteOverview = () => {
+  //   if (!serviceRequest || !serviceRequest.locationAddress) return null;
+  //   return (
+  //     <View style={styles.routeOverviewContainer}>
+  //       <View style={styles.routeEndpointContainer}>
+  //         <View style={styles.endpointDot} />
+  //         <Text style={styles.currentLocationText}>Current Location</Text>
+  //       </View>
+  //       <View style={styles.routeLine} />
+  //       <View style={styles.routeEndpointContainer}>
+  //         <View style={[styles.endpointDot, styles.destinationDot]} />
+  //         <Text style={styles.destinationText}>{serviceRequest.locationAddress}</Text>
+  //       </View>
+  //     </View>
+  //   );
+  // };
 
   const renderStatusBadge = () => {
     let badgeStyle = styles.statusBadgePending;
@@ -395,6 +352,17 @@ export default function CustomerRequestDetails() {
     );
   };
 
+  // Get profile picture URL if available
+  const getProfilePicture = () => {
+    if (selectedProvider?.profilePicture) {
+      return { uri: `${IMAGE_API_URL}${selectedProvider.profilePicture}` };
+    }
+    return DEFAULT_PROFILE_IMAGE;
+  };
+
+  // Display the name from the provider data if available, otherwise use the one from the offer
+  const displayName = selectedProvider?.firstName && selectedProvider?.lastName ? `${selectedProvider.firstName} ${selectedProvider.lastName}` : offerDetails?.providerName || "Service Provider";
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -407,13 +375,7 @@ export default function CustomerRequestDetails() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          region={mapRegion}
-          showsUserLocation={true}
-        >
+        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} region={mapRegion} showsUserLocation={true}>
           {currentLocation && (
             <Marker
               coordinate={{
@@ -428,54 +390,49 @@ export default function CustomerRequestDetails() {
             </Marker>
           )}
 
-          {serviceRequest &&
-            serviceRequest.locationLatitude &&
-            serviceRequest.locationLongitude && (
-              <Marker
-                coordinate={{
-                  latitude: serviceRequest.locationLatitude,
-                  longitude: serviceRequest.locationLongitude,
-                }}
-                title="Service Provider Location"
-              >
-                <View style={styles.destinationMarker}>
-                  <Ionicons name="location" size={18} color="#FFFFFF" />
-                </View>
-              </Marker>
-            )}
+          {serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude && (
+            <Marker
+              coordinate={{
+                latitude: serviceRequest.locationLatitude,
+                longitude: serviceRequest.locationLongitude,
+              }}
+              title="Service Provider Location"
+            >
+              <View style={styles.destinationMarker}>
+                <Ionicons name="location" size={18} color="#FFFFFF" />
+              </View>
+            </Marker>
+          )}
 
-          {currentLocation &&
-            serviceRequest &&
-            serviceRequest.locationLatitude &&
-            serviceRequest.locationLongitude && (
-              <MapViewDirections
-                origin={{
-                  latitude: currentLocation.latitude,
-                  longitude: currentLocation.longitude,
-                }}
-                destination={{
-                  latitude: serviceRequest.locationLatitude,
-                  longitude: serviceRequest.locationLongitude,
-                }}
-                apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={4}
-                strokeColor="#FF3B30"
-                onReady={(result) => {
-                  const distanceValue = result.distance;
-                  const formattedDistance = distanceValue.toFixed(2) + " km";
-                  const durationValue = result.duration;
-                  const formattedDuration = durationValue.toFixed(1) + " mins";
+          {currentLocation && serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude && (
+            <MapViewDirections
+              origin={{
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+              }}
+              destination={{
+                latitude: serviceRequest.locationLatitude,
+                longitude: serviceRequest.locationLongitude,
+              }}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={4}
+              strokeColor="#FF3B30"
+              onReady={(result) => {
+                const distanceValue = result.distance;
+                const formattedDistance = distanceValue.toFixed(2) + " km";
+                const durationValue = result.duration;
+                const formattedDuration = durationValue.toFixed(1) + " mins";
 
-                  setDistance(formattedDistance);
-                  setDuration(formattedDuration);
+                setDistance(formattedDistance);
+                setDuration(formattedDuration);
 
-                  mapRef.current?.fitToCoordinates(result.coordinates, {
-                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-                    animated: true,
-                  });
-                }}
-              />
-            )}
+                mapRef.current?.fitToCoordinates(result.coordinates, {
+                  edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                  animated: true,
+                });
+              }}
+            />
+          )}
         </MapView>
       </View>
 
@@ -498,75 +455,50 @@ export default function CustomerRequestDetails() {
           {renderStatusBadge()}
 
           <View style={styles.providerDetailsContainer}>
-            {/* <Image
-              source={{
-                uri:
-                  offerDetails?.providerProfileImage ||
-                  "https://via.placeholder.com/80",
-              }}
-              style={styles.profileImage}
-            /> */}
-            <Text style={styles.providerName}>
-              {offerDetails?.providerName || "Provider"}
-            </Text>
-            <Text style={styles.contactNumber}>
-              Contact: {offerDetails?.providerName || "N/A"}
-            </Text>
+            <View style={styles.profileImageContainer}>
+              {loadingProvider ? <ActivityIndicator size="small" color="#3F63C7" /> : <Image source={getProfilePicture()} style={styles.profileImage} />}
+            </View>
+            <Text style={styles.providerName}>{displayName}</Text>
+            <Text style={styles.contactNumber}>Contact: {selectedProvider?.phoneNumber || "N/A"}</Text>
+
+            {/* Display provider rating if available */}
+            {/* {selectedProvider?.rating && (
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={16} color="#FFB800" />
+                <Text style={styles.ratingText}>{selectedProvider.rating.toFixed(1)}</Text>
+              </View>
+            )} */}
           </View>
 
-          {renderRouteOverview()}
+          {/* {renderRouteOverview()} */}
 
           <View style={styles.detailsContainer}>
             <Text style={styles.label}>Service Category</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.serviceCategoryName || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.serviceCategoryName || "N/A"}</Text>
             <Text style={styles.label}>Selected Services</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.serviceListNames?.join(", ") || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.serviceListNames?.join(", ") || "N/A"}</Text>
 
             <Text style={styles.label}>Problem Images</Text>
             {serviceRequest?.serviceRequestImagePaths?.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.imagesContainer}
-              >
-                {serviceRequest.serviceRequestImagePaths.map(
-                  (imageUri: string) => (
-                    <Image
-                      key={imageUri}
-                      source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
-                      style={styles.problemImage}
-                      resizeMode="cover"
-                    />
-                  )
-                )}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
+                {serviceRequest.serviceRequestImagePaths.map((imageUri: string) => (
+                  <Image key={imageUri} source={{ uri: `${IMAGE_API_URL}${imageUri}` }} style={styles.problemImage} resizeMode="cover" />
+                ))}
               </ScrollView>
             ) : (
               <Text style={styles.value}>No images uploaded</Text>
             )}
 
             <Text style={styles.label}>Description</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.description || "No additional details provided"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.description || "No additional details provided"}</Text>
             <Text style={styles.label}>Your Location</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.locationAddress || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.locationAddress || "N/A"}</Text>
             <Text style={styles.label}>Provider's Offer</Text>
-            <Text style={styles.priceValue}>
-              NPR {offerDetails?.offeredPrice || "N/A"}
-            </Text>
+            <Text style={styles.priceValue}>NPR {offerDetails?.offeredPrice || "N/A"}</Text>
           </View>
 
           {serviceRequest?.status === "Completed" && (
-            <TouchableOpacity
-              style={styles.homeButton}
-              onPress={() => router.replace("/(tabs)/home")}
-            >
+            <TouchableOpacity style={styles.homeButton} onPress={() => router.replace("/(tabs)/home")}>
               <Ionicons name="home" size={20} color="#FFFFFF" />
               <Text style={styles.buttonText}>Return Home</Text>
             </TouchableOpacity>
@@ -600,10 +532,8 @@ const styles = StyleSheet.create({
   },
   imagesContainer: {
     flexDirection: "row",
-
     marginTop: 10,
   },
-
   problemImage: {
     width: 100,
     height: 100,
@@ -611,7 +541,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginBottom: 10,
   },
-
   infoPanel: {
     position: "absolute",
     bottom: 0,
@@ -671,12 +600,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingVertical: 10,
   },
-  profileImage: {
+  profileImageContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
+    backgroundColor: "#f0f0f0",
+    overflow: "hidden",
     marginBottom: 10,
-    backgroundColor: "#F0F0F0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileImage: {
+    width: "100%",
+    height: "100%",
   },
   providerName: {
     fontSize: 18,
@@ -687,6 +623,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#808080",
     marginTop: 4,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  ratingText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
   },
   detailsContainer: {
     backgroundColor: "#F9F9F9",

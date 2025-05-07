@@ -1,58 +1,30 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Platform,
-  KeyboardAvoidingView,
-  SafeAreaView,
-  Alert,
-  Dimensions,
-  StyleSheet,
-  Animated,
-  PanResponder,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, Platform, KeyboardAvoidingView, SafeAreaView, Alert, Dimensions, StyleSheet, Animated, PanResponder, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import MapView, { Marker } from "react-native-maps";
-import {
-  getServiceRequestById,
-  cancelServiceRequest,
-  resetServiceRequestState,
-  clearServiceRequestData,
-  updateServiceRequestStatus,
-} from "@/store/slice/serviceRequest";
-import {
-  getOffersByRequestId,
-  acceptOffer,
-  rejectOffer,
-} from "@/store/slice/serviceOffer";
+import { getServiceRequestById, cancelServiceRequest, resetServiceRequestState, clearServiceRequestData, updateServiceRequestStatus } from "@/store/slice/serviceRequest";
+import { getOffersByRequestId, acceptOffer, rejectOffer } from "@/store/slice/serviceOffer";
 import OfferNotification from "@/components/Notification";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { Image } from "react-native";
+import Constants from "expo-constants";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 400;
 const PANEL_MAX_HEIGHT = height * 0.6;
 const DRAG_THRESHOLD = 50;
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
 export default function AfterRequestService() {
   const dispatch = useDispatch<AppDispatch>();
 
   const { currentLocation } = useSelector((state: RootState) => state.location);
-  const {
-    currentRequest,
-    serviceRequestId,
-    isLoading: requestLoading,
-    error: requestError,
-  } = useSelector((state: RootState) => state.serviceRequest);
-  const { offers, isLoading: offersLoading } = useSelector(
-    (state: RootState) => state.serviceOffer
-  );
+  const { currentRequest, serviceRequestId, isLoading: requestLoading, error: requestError } = useSelector((state: RootState) => state.serviceRequest);
+  const { offers, isLoading: offersLoading } = useSelector((state: RootState) => state.serviceOffer);
   const { userId } = useSelector((state: RootState) => state.auth);
 
   const [panelHeight, setPanelHeight] = useState(PANEL_MIN_HEIGHT);
@@ -62,10 +34,7 @@ export default function AfterRequestService() {
   const animatedHeight = useRef(new Animated.Value(PANEL_MIN_HEIGHT)).current;
 
   // Initialize SignalR connection for this specific request
-  const { connected: signalRConnected } = useServiceRequestSignalR(
-    undefined,
-    serviceRequestId || currentRequest?.id
-  );
+  const { connected: signalRConnected } = useServiceRequestSignalR(undefined, serviceRequestId || currentRequest?.id);
 
   const { connected: offerSignalRConnected } = useServiceOfferSignalR(
     undefined, // No provider ID since we're the customer
@@ -76,28 +45,6 @@ export default function AfterRequestService() {
     console.log("Request SignalR connection:", signalRConnected);
     console.log("Offer SignalR connection:", offerSignalRConnected);
   }, [signalRConnected, offerSignalRConnected]);
-
-  // useEffect(() => {
-  //   const requestId = serviceRequestId || currentRequest?.id;
-
-  //   if (requestId) {
-  //     // Get the request details
-  //     dispatch(getServiceRequestById(requestId));
-
-  //     // Check for offers
-  //     dispatch(getOffersByRequestId(requestId));
-
-  //     // Only set up polling if SignalR is not connected
-  //     if (!signalRConnected) {
-  //       const intervalId = setInterval(() => {
-  //         dispatch(getOffersByRequestId(requestId));
-  //         dispatch(getServiceRequestById(requestId)); // Also refresh request status
-  //       }, 10000); // Poll every 10 seconds
-
-  //       return () => clearInterval(intervalId);
-  //     }
-  //   }
-  // }, [serviceRequestId, currentRequest?.id, dispatch, signalRConnected]);
 
   useEffect(() => {
     const requestId = serviceRequestId || currentRequest?.id;
@@ -120,13 +67,7 @@ export default function AfterRequestService() {
         console.log("Using SignalR for real-time updates");
       }
     }
-  }, [
-    serviceRequestId,
-    currentRequest?.id,
-    dispatch,
-    signalRConnected,
-    offerSignalRConnected,
-  ]);
+  }, [serviceRequestId, currentRequest?.id, dispatch, signalRConnected, offerSignalRConnected]);
 
   useEffect(() => {
     if (requestError) {
@@ -145,25 +86,17 @@ export default function AfterRequestService() {
 
   // Handle request status changes (including cancellation)
   useEffect(() => {
-    if (
-      currentRequest &&
-      (currentRequest.status === "Expired" ||
-        currentRequest.status === "CANCELLED")
-    ) {
-      Alert.alert(
-        "Request Status",
-        `This service request is ${currentRequest.status.toLowerCase()}.`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.replace("/(tabs)/home");
-              dispatch(resetServiceRequestState());
-              dispatch(clearServiceRequestData());
-            },
+    if (currentRequest && (currentRequest.status === "Expired" || currentRequest.status === "CANCELLED")) {
+      Alert.alert("Request Status", `This service request is ${currentRequest.status.toLowerCase()}.`, [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace("/(tabs)/home");
+            dispatch(resetServiceRequestState());
+            dispatch(clearServiceRequestData());
           },
-        ]
-      );
+        },
+      ]);
     }
   }, [currentRequest, dispatch]);
 
@@ -189,36 +122,25 @@ export default function AfterRequestService() {
           )
             .unwrap()
             .then(() => {
-              Alert.alert(
-                "Success",
-                "Offer accepted! The service provider has been notified.",
-                [
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      router.replace({
-                        pathname:
-                          "/(users)/(RequestService)/CustomerProviderRequestDetails",
-                        params: {
-                          offerId: offerId,
-                          serviceRequestId:
-                            serviceRequestId || currentRequest?.id,
-                        },
-                      });
-                    },
+              Alert.alert("Success", "Offer accepted! The service provider has been notified.", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    router.replace({
+                      pathname: "/(users)/(RequestService)/CustomerProviderRequestDetails",
+                      params: {
+                        offerId: offerId,
+                        serviceRequestId: serviceRequestId || currentRequest?.id,
+                      },
+                    });
                   },
-                ]
-              );
+                },
+              ]);
             })
             .catch((error) => {
-              const errorMessage =
-                typeof error === "string"
-                  ? error
-                  : error?.message || "An unexpected error occurred";
+              const errorMessage = typeof error === "string" ? error : error?.message || "An unexpected error occurred";
               Alert.alert("Error", errorMessage);
-              setProcessedOfferIds((prev) =>
-                prev.filter((id) => id !== offerId)
-              );
+              setProcessedOfferIds((prev) => prev.filter((id) => id !== offerId));
             });
         },
       },
@@ -231,50 +153,41 @@ export default function AfterRequestService() {
       return;
     }
 
-    Alert.alert(
-      "Decline Offer",
-      "Are you sure you want to decline this offer?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Decline",
-          style: "destructive",
-          onPress: () => {
-            setProcessedOfferIds((prev) => [...prev, offerId]);
+    Alert.alert("Decline Offer", "Are you sure you want to decline this offer?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Decline",
+        style: "destructive",
+        onPress: () => {
+          setProcessedOfferIds((prev) => [...prev, offerId]);
 
-            dispatch(
-              rejectOffer({
-                offerId,
-                customerId: userId,
-              })
-            )
-              .unwrap()
-              .then(() => {
-                Alert.alert("Success", "Offer declined", [
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      if (serviceRequestId) {
-                        dispatch(getOffersByRequestId(serviceRequestId));
-                      }
-                    },
+          dispatch(
+            rejectOffer({
+              offerId,
+              customerId: userId,
+            })
+          )
+            .unwrap()
+            .then(() => {
+              Alert.alert("Success", "Offer declined", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    if (serviceRequestId) {
+                      dispatch(getOffersByRequestId(serviceRequestId));
+                    }
                   },
-                ]);
-              })
-              .catch((error) => {
-                const errorMessage =
-                  typeof error === "string"
-                    ? error
-                    : error?.message || "An unexpected error occurred";
-                Alert.alert("Error", errorMessage);
-                setProcessedOfferIds((prev) =>
-                  prev.filter((id) => id !== offerId)
-                );
-              });
-          },
+                },
+              ]);
+            })
+            .catch((error) => {
+              const errorMessage = typeof error === "string" ? error : error?.message || "An unexpected error occurred";
+              Alert.alert("Error", errorMessage);
+              setProcessedOfferIds((prev) => prev.filter((id) => id !== offerId));
+            });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const mapRegion = currentLocation
@@ -301,10 +214,7 @@ export default function AfterRequestService() {
         const dy = gesture.dy - lastY.current;
         lastY.current = gesture.dy;
 
-        const newHeight = Math.max(
-          PANEL_MIN_HEIGHT,
-          Math.min(PANEL_MAX_HEIGHT, panelHeight - dy)
-        );
+        const newHeight = Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, panelHeight - dy));
         animatedHeight.setValue(newHeight);
       },
       onPanResponderRelease: (_, gesture) => {
@@ -323,10 +233,7 @@ export default function AfterRequestService() {
           }).start();
           setIsPanelExpanded(false);
         } else {
-          const toValue =
-            panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2
-              ? PANEL_MAX_HEIGHT
-              : PANEL_MIN_HEIGHT;
+          const toValue = panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2 ? PANEL_MAX_HEIGHT : PANEL_MIN_HEIGHT;
 
           Animated.spring(animatedHeight, {
             toValue,
@@ -340,66 +247,51 @@ export default function AfterRequestService() {
   ).current;
 
   const handleCancelRequest = () => {
-    Alert.alert(
-      "Cancel Request",
-      "Are you sure you want to cancel this service request?",
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes",
-          style: "destructive",
-          onPress: () => {
-            const requestId = currentRequest?.id;
-            const customerId = currentRequest?.customerId;
+    Alert.alert("Cancel Request", "Are you sure you want to cancel this service request?", [
+      { text: "No", style: "cancel" },
+      {
+        text: "Yes",
+        style: "destructive",
+        onPress: () => {
+          const requestId = currentRequest?.id;
+          const customerId = currentRequest?.customerId;
 
-            if (!customerId || !requestId) {
-              Alert.alert("Error", "Request information not found");
-              return;
-            }
+          if (!customerId || !requestId) {
+            Alert.alert("Error", "Request information not found");
+            return;
+          }
 
-            dispatch(
-              cancelServiceRequest({
-                requestId,
-                customerId,
-              })
-            )
-              .unwrap()
-              .then(() => {
-                Alert.alert(
-                  "Success",
-                  "Service request Cancelled successfully",
-                  [
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        // Clear all request data before navigating
-                        dispatch(resetServiceRequestState());
-                        dispatch(clearServiceRequestData());
-                        router.replace("/(tabs)/home");
-                      },
-                    },
-                  ]
-                );
-              })
-              .catch((error: any) => {
-                const errorMessage =
-                  typeof error === "string"
-                    ? error
-                    : error?.message || "An unexpected error occurred";
-                Alert.alert("Error", errorMessage);
-              });
-          },
+          dispatch(
+            cancelServiceRequest({
+              requestId,
+              customerId,
+            })
+          )
+            .unwrap()
+            .then(() => {
+              Alert.alert("Success", "Service request Cancelled successfully", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    // Clear all request data before navigating
+                    dispatch(resetServiceRequestState());
+                    dispatch(clearServiceRequestData());
+                    router.replace("/(tabs)/home");
+                  },
+                },
+              ]);
+            })
+            .catch((error: any) => {
+              const errorMessage = typeof error === "string" ? error : error?.message || "An unexpected error occurred";
+              Alert.alert("Error", errorMessage);
+            });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const getSelectedServicesText = () => {
-    if (
-      !currentRequest ||
-      !currentRequest.serviceListNames ||
-      currentRequest.serviceListNames.length === 0
-    ) {
+    if (!currentRequest || !currentRequest.serviceListNames || currentRequest.serviceListNames.length === 0) {
       return "No services selected";
     }
 
@@ -408,16 +300,12 @@ export default function AfterRequestService() {
 
   // Find pending offers that should be displayed as notifications
   // Filter out any offers that have been processed (accepted/declined)
-  const pendingOffers =
-    offers?.filter(
-      (offer) =>
-        offer.status === "Pending" && !processedOfferIds.includes(offer.id)
-    ) || [];
+  const pendingOffers = offers?.filter((offer) => offer.status === "Pending" && !processedOfferIds.includes(offer.id)) || [];
 
   if (requestLoading && !currentRequest) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F8C52B" />
+        <ActivityIndicator size="large" color="#3F63C7" />
         <Text style={styles.loadingText}>Loading request details...</Text>
       </View>
     );
@@ -426,12 +314,7 @@ export default function AfterRequestService() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          region={mapRegion}
-          scrollEnabled
-          zoomEnabled
-        >
+        <MapView style={styles.map} region={mapRegion} scrollEnabled zoomEnabled>
           {currentLocation && (
             <Marker
               coordinate={{
@@ -444,77 +327,49 @@ export default function AfterRequestService() {
       </View>
 
       {/* Render offer notifications - only show the most recent one */}
-      {pendingOffers.length > 0 && (
-        <OfferNotification
-          serviceOfferData={pendingOffers[0]}
-          onAccept={handleAcceptOffer}
-          onDecline={handleDeclineOffer}
-        />
-      )}
+      {pendingOffers.length > 0 && <OfferNotification serviceOfferData={pendingOffers[0]} onAccept={handleAcceptOffer} onDecline={handleDeclineOffer} />}
 
       <View style={styles.panel}>
         <Animated.View style={{ height: animatedHeight }}>
-          <View
-            style={styles.dragHandleContainer}
-            {...panResponder.panHandlers}
-          >
+          <View style={styles.dragHandleContainer} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
           </View>
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.panelContent}
-            keyboardVerticalOffset={40}
-          >
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.panelContent} keyboardVerticalOffset={40}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
               {requestLoading ? (
-                <ActivityIndicator size="large" color="#F8C52B" />
+                <ActivityIndicator size="large" color="#3F63C7" />
               ) : (
                 <>
                   <Text style={styles.panelTitle}>Service Request Details</Text>
 
                   <Text style={styles.label}>Selected Services</Text>
                   <View style={[styles.input, styles.readOnlyField]}>
-                    <Text style={styles.inputText}>
-                      {getSelectedServicesText()}
-                    </Text>
+                    <Text style={styles.inputText}>{getSelectedServicesText()}</Text>
                   </View>
 
-                  {currentRequest?.serviceRequestImagePaths &&
-                    currentRequest.serviceRequestImagePaths.length > 0 && (
-                      <>
-                        <Text style={[styles.label, { marginTop: 16 }]}>
-                          Uploaded Images
-                        </Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                        >
-                          {currentRequest.serviceRequestImagePaths.map(
-                            (imageUri, index) => (
-                              <View key={index} style={styles.imageContainer}>
-                                <Image
-                                  source={{
-                                    uri: `http://10.0.2.2:5039${imageUri}`,
-                                  }}
-                                  style={styles.image}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                            )
-                          )}
-                        </ScrollView>
-                      </>
-                    )}
+                  {currentRequest?.serviceRequestImagePaths && currentRequest.serviceRequestImagePaths.length > 0 && (
+                    <>
+                      <Text style={[styles.label, { marginTop: 16 }]}>Uploaded Images</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {currentRequest.serviceRequestImagePaths.map((imageUri, index) => (
+                          <View key={index} style={styles.imageContainer}>
+                            <Image
+                              source={{
+                                uri: `${IMAGE_API_URL}${imageUri}`,
+                              }}
+                              style={styles.image}
+                              resizeMode="cover"
+                            />
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </>
+                  )}
 
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Additional Details
-                  </Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Additional Details</Text>
                   <View style={[styles.textArea, styles.readOnlyField]}>
-                    <Text style={styles.inputText}>
-                      {currentRequest?.description ||
-                        "No additional details provided"}
-                    </Text>
+                    <Text style={styles.inputText}>{currentRequest?.description || "No additional details provided"}</Text>
                   </View>
 
                   <View style={styles.sectionDivider} />
@@ -522,32 +377,12 @@ export default function AfterRequestService() {
                   <View style={styles.statusContainer}>
                     <Ionicons
                       name={
-                        currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "Cancelled"
-                          ? "alert-circle-outline"
-                          : pendingOffers.length > 0
-                          ? "checkmark-circle-outline"
-                          : "time-outline"
+                        currentRequest?.status === "Expired" || currentRequest?.status === "Cancelled" ? "alert-circle-outline" : pendingOffers.length > 0 ? "checkmark-circle-outline" : "time-outline"
                       }
                       size={20}
-                      color={
-                        currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "Cancelled"
-                          ? "#FF6B6B"
-                          : pendingOffers.length > 0
-                          ? "#4CAF50"
-                          : "#F8C52B"
-                      }
+                      color={currentRequest?.status === "Expired" || currentRequest?.status === "Cancelled" ? "#FF6B6B" : pendingOffers.length > 0 ? "#4CAF50" : "#F8C52B"}
                     />
-                    <Text
-                      style={[
-                        styles.statusValue,
-                        currentRequest?.status === "Expired" ||
-                        currentRequest?.status === "Cancelled"
-                          ? styles.statusValue
-                          : {},
-                      ]}
-                    >
+                    <Text style={[styles.statusValue, currentRequest?.status === "Expired" || currentRequest?.status === "Cancelled" ? styles.statusValue : {}]}>
                       {currentRequest?.status === "Expired"
                         ? "This request has expired"
                         : currentRequest?.status === "Cancelled"
@@ -558,30 +393,18 @@ export default function AfterRequestService() {
                     </Text>
                   </View>
 
-                  {pendingOffers.length > 1 && (
-                    <Text style={styles.multipleOffersNote}>
-                      Pull up to see all available offers
-                    </Text>
-                  )}
+                  {pendingOffers.length > 1 && <Text style={styles.multipleOffersNote}>Pull up to see all available offers</Text>}
 
-                  {currentRequest?.status !== "Expired" &&
-                    currentRequest?.status !== "Cancelled" && (
-                      <View style={styles.cancelButtonContainer}>
-                        <View style={styles.buttonWrapper}>
-                          <Text style={styles.buttonHelperText}>
-                            Need to make changes or cancel?
-                          </Text>
-                          <View
-                            style={styles.cancelButton}
-                            onTouchEnd={handleCancelRequest}
-                          >
-                            <Text style={styles.cancelButtonText}>
-                              Cancel Request
-                            </Text>
-                          </View>
+                  {currentRequest?.status !== "Expired" && currentRequest?.status !== "Cancelled" && (
+                    <View style={styles.cancelButtonContainer}>
+                      <View style={styles.buttonWrapper}>
+                        <Text style={styles.buttonHelperText}>Need to make changes or cancel?</Text>
+                        <View style={styles.cancelButton} onTouchEnd={handleCancelRequest}>
+                          <Text style={styles.cancelButtonText}>Cancel Request</Text>
                         </View>
                       </View>
-                    )}
+                    </View>
+                  )}
                 </>
               )}
             </ScrollView>

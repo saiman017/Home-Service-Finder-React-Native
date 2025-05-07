@@ -1,34 +1,20 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Alert, SafeAreaView } from "react-native";
 import Header from "@/components/Header";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import {
-  editUser,
-  fetchUserById,
-  uploadProfilePicture,
-  selectUserById,
-} from "@/store/slice/user";
+import { editUser, fetchUserById, uploadProfilePicture, selectUserById } from "@/store/slice/user";
 import type { AppDispatch, RootState } from "@/store/store";
 import { Formik } from "formik";
 import * as Yup from "yup";
 import * as ImagePicker from "expo-image-picker";
+import Constants from "expo-constants";
 
 export default function EditUserProfile() {
   const dispatch = useDispatch<AppDispatch>();
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
   const { userId } = useSelector((state: RootState) => state.auth);
   const currentUser = useSelector(selectUserById);
@@ -124,10 +110,7 @@ export default function EditUserProfile() {
               let uploadedProfilePicture = values.profilePicture;
 
               // Check if a new image is selected (local file)
-              if (
-                values.profilePicture &&
-                values.profilePicture.startsWith("file")
-              ) {
+              if (values.profilePicture && values.profilePicture.startsWith("file")) {
                 const fileUri = values.profilePicture;
                 const fileName = fileUri.split("/").pop() || "profile.jpg";
                 const match = /\.(\w+)$/.exec(fileName);
@@ -141,9 +124,7 @@ export default function EditUserProfile() {
                 } as any);
 
                 // Upload image first
-                const uploadResult = await dispatch(
-                  uploadProfilePicture({ id: userId, file: formData })
-                ).unwrap();
+                const uploadResult = await dispatch(uploadProfilePicture({ id: userId, file: formData })).unwrap();
                 uploadedProfilePicture = uploadResult.profilePicture; // Get uploaded image path from server
               }
 
@@ -170,25 +151,11 @@ export default function EditUserProfile() {
             }
           }}
         >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            values,
-            errors,
-            touched,
-            setFieldValue,
-            isValid,
-            dirty,
-          }) => {
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue, isValid, dirty }) => {
             const handleSelectImage = async () => {
-              const permissionResult =
-                await ImagePicker.requestMediaLibraryPermissionsAsync();
+              const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
               if (!permissionResult.granted) {
-                Alert.alert(
-                  "Permission Denied",
-                  "Permission to access camera roll is required!"
-                );
+                Alert.alert("Permission Denied", "Permission to access camera roll is required!");
                 return;
               }
 
@@ -214,9 +181,7 @@ export default function EditUserProfile() {
                     {values.profilePicture ? (
                       <Image
                         source={{
-                          uri: values.profilePicture.startsWith("file")
-                            ? values.profilePicture
-                            : `http://10.0.2.2:5039${values.profilePicture}`,
+                          uri: values.profilePicture.startsWith("file") ? values.profilePicture : `${IMAGE_API_URL}${values.profilePicture}`,
                         }}
                         style={styles.profileImage}
                       />
@@ -225,10 +190,7 @@ export default function EditUserProfile() {
                         <Ionicons name="person" size={60} color="#FFFFFF" />
                       </View>
                     )}
-                    <TouchableOpacity
-                      style={styles.editImageButton}
-                      onPress={handleSelectImage}
-                    >
+                    <TouchableOpacity style={styles.editImageButton} onPress={handleSelectImage}>
                       <MaterialIcons name="edit" size={22} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
@@ -237,30 +199,14 @@ export default function EditUserProfile() {
                 <View style={styles.formContainer}>
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>First Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      onChangeText={handleChange("firstName")}
-                      onBlur={handleBlur("firstName")}
-                      value={values.firstName}
-                      placeholder="Enter your first name"
-                    />
-                    {touched.firstName && errors.firstName && (
-                      <Text style={styles.errorText}>{errors.firstName}</Text>
-                    )}
+                    <TextInput style={styles.input} onChangeText={handleChange("firstName")} onBlur={handleBlur("firstName")} value={values.firstName} placeholder="Enter your first name" />
+                    {touched.firstName && errors.firstName && <Text style={styles.errorText}>{errors.firstName}</Text>}
                   </View>
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Last Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      onChangeText={handleChange("lastName")}
-                      onBlur={handleBlur("lastName")}
-                      value={values.lastName}
-                      placeholder="Enter your last name"
-                    />
-                    {touched.lastName && errors.lastName && (
-                      <Text style={styles.errorText}>{errors.lastName}</Text>
-                    )}
+                    <TextInput style={styles.input} onChangeText={handleChange("lastName")} onBlur={handleBlur("lastName")} value={values.lastName} placeholder="Enter your last name" />
+                    {touched.lastName && errors.lastName && <Text style={styles.errorText}>{errors.lastName}</Text>}
                   </View>
 
                   <View style={styles.inputGroup}>
@@ -279,36 +225,13 @@ export default function EditUserProfile() {
                     <Text style={styles.label}>Gender</Text>
                     <View style={styles.dropdownContainer}>
                       <TouchableOpacity
-                        style={[
-                          styles.input,
-                          styles.selectContainer,
-                          touched.gender && errors.gender
-                            ? styles.inputError
-                            : null,
-                        ]}
-                        onPress={() =>
-                          setShowGenderDropdown(!showGenderDropdown)
-                        }
+                        style={[styles.input, styles.selectContainer, touched.gender && errors.gender ? styles.inputError : null]}
+                        onPress={() => setShowGenderDropdown(!showGenderDropdown)}
                       >
-                        <Text
-                          style={
-                            values.gender
-                              ? styles.selectText
-                              : styles.placeholderText
-                          }
-                        >
-                          {values.gender
-                            ? values.gender.charAt(0).toUpperCase() +
-                              values.gender.slice(1)
-                            : "Select gender"}
+                        <Text style={values.gender ? styles.selectText : styles.placeholderText}>
+                          {values.gender ? values.gender.charAt(0).toUpperCase() + values.gender.slice(1) : "Select gender"}
                         </Text>
-                        <Ionicons
-                          name={
-                            showGenderDropdown ? "chevron-up" : "chevron-down"
-                          }
-                          size={20}
-                          color="#808080"
-                        />
+                        <Ionicons name={showGenderDropdown ? "chevron-up" : "chevron-down"} size={20} color="#808080" />
                       </TouchableOpacity>
 
                       {showGenderDropdown && (
@@ -322,83 +245,40 @@ export default function EditUserProfile() {
                                 setShowGenderDropdown(false);
                               }}
                             >
-                              <Text
-                                style={[
-                                  styles.dropdownItemText,
-                                  values.gender === item.value &&
-                                    styles.selectedItemText,
-                                ]}
-                              >
-                                {item.label}
-                              </Text>
-                              {values.gender === item.value && (
-                                <Ionicons
-                                  name="checkmark"
-                                  size={16}
-                                  color="#3F63C7"
-                                />
-                              )}
+                              <Text style={[styles.dropdownItemText, values.gender === item.value && styles.selectedItemText]}>{item.label}</Text>
+                              {values.gender === item.value && <Ionicons name="checkmark" size={16} color="#3F63C7" />}
                             </TouchableOpacity>
                           ))}
                         </View>
                       )}
                     </View>
-                    {touched.gender && errors.gender ? (
-                      <Text style={styles.errorText}>{errors.gender}</Text>
-                    ) : null}
+                    {touched.gender && errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
                   </View>
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Date of Birth</Text>
-                    <TouchableOpacity
-                      style={styles.datePickerButton}
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Text style={styles.dateText}>
-                        {formattedDate(values.dateOfBirth)}
-                      </Text>
-                      <MaterialIcons
-                        name="calendar-today"
-                        size={24}
-                        color="#3F63C7"
-                      />
+                    <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
+                      <Text style={styles.dateText}>{formattedDate(values.dateOfBirth)}</Text>
+                      <MaterialIcons name="calendar-today" size={24} color="#3F63C7" />
                     </TouchableOpacity>
                     {showDatePicker && (
                       <DateTimePicker
-                        value={
-                          values.dateOfBirth
-                            ? new Date(values.dateOfBirth)
-                            : new Date()
-                        }
+                        value={values.dateOfBirth ? new Date(values.dateOfBirth) : new Date()}
                         mode="date"
                         display="default"
                         maximumDate={new Date()}
                         onChange={(event, selectedDate) => {
                           setShowDatePicker(false);
                           if (selectedDate) {
-                            setFieldValue(
-                              "dateOfBirth",
-                              selectedDate.toISOString().split("T")[0]
-                            );
+                            setFieldValue("dateOfBirth", selectedDate.toISOString().split("T")[0]);
                           }
                         }}
                       />
                     )}
                   </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.saveButton,
-                      !(dirty && isValid) && { opacity: 0.5 },
-                    ]}
-                    onPress={() => handleSubmit()}
-                    disabled={!(dirty && isValid) || saving}
-                  >
-                    {saving ? (
-                      <ActivityIndicator color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Save Changes</Text>
-                    )}
+                  <TouchableOpacity style={[styles.saveButton, !(dirty && isValid) && { opacity: 0.5 }]} onPress={() => handleSubmit()} disabled={!(dirty && isValid) || saving}>
+                    {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
                   </TouchableOpacity>
                 </View>
               </>

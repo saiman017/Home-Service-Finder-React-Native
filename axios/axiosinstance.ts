@@ -321,9 +321,12 @@
 import axios from "axios";
 import { jwtDecode, JwtPayload } from "jwt-decode";
 import { router } from "expo-router";
+import Constants from "expo-constants";
 
 // API URLs for different environments
-const ANDROID_API_URL = "http://10.0.2.2:5039/api";
+const BACKEND_API_URL = Constants.expoConfig?.extra?.BACKEND_API_URL ?? "default_value";
+
+const ANDROID_API_URL = BACKEND_API_URL;
 
 interface DecodedToken extends JwtPayload {
   exp: number;
@@ -390,13 +393,7 @@ const getAxiosInstance = () => {
     async (config) => {
       console.log("Making request to:", config.url);
 
-      const publicEndpoints = [
-        "/auth/login",
-        "/auth/register",
-        "/auth/verify-otp",
-        "/auth/refresh",
-        "/serviceCategory",
-      ];
+      const publicEndpoints = ["/auth/login", "/auth/register", "/auth/verify-otp", "/auth/refresh", "/serviceCategory"];
 
       if (publicEndpoints.some((endpoint) => config.url?.includes(endpoint))) {
         return config;
@@ -459,9 +456,7 @@ const getAxiosInstance = () => {
 
   instance.interceptors.response.use(
     (response) => {
-      console.log(
-        `Response from ${response.config.url}: Status ${response.status}`
-      );
+      console.log(`Response from ${response.config.url}: Status ${response.status}`);
       return response;
     },
     async (error) => {

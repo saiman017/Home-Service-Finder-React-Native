@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Alert } from "react-native";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store/store";
 import { useLocalSearchParams } from "expo-router";
@@ -16,11 +8,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatToNepalTime } from "@/utils/formattoNepalTime";
 import { getServiceRequestById } from "@/store/slice/serviceRequest";
 import { getOffersByRequestId } from "@/store/slice/serviceOffer";
+import Constants from "expo-constants";
 
 export default function HistoryDetail() {
   const { serviceRequestId } = useLocalSearchParams();
   const dispatch = useDispatch<AppDispatch>();
-
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
   const [serviceRequest, setServiceRequest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [offerDetails, setOfferDetails] = useState<any>(null);
@@ -30,19 +23,13 @@ export default function HistoryDetail() {
       const fetchData = async () => {
         try {
           setIsLoading(true);
-          const requestRes = await dispatch(
-            getServiceRequestById(serviceRequestId as string)
-          ).unwrap();
+          const requestRes = await dispatch(getServiceRequestById(serviceRequestId as string)).unwrap();
           setServiceRequest(requestRes);
 
           // If request completed, fetch offer
           if (requestRes.status === "Completed") {
-            const offers = await dispatch(
-              getOffersByRequestId(serviceRequestId as string)
-            ).unwrap();
-            const acceptedOffer = offers.find(
-              (offer: any) => offer.status === "Completed"
-            );
+            const offers = await dispatch(getOffersByRequestId(serviceRequestId as string)).unwrap();
+            const acceptedOffer = offers.find((offer: any) => offer.status === "Completed");
             setOfferDetails(acceptedOffer);
           }
         } catch (err) {
@@ -94,29 +81,12 @@ export default function HistoryDetail() {
   return (
     <View style={styles.container}>
       <Header title="Service History Detail" showBackButton={true} />
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>
-              {serviceRequest.serviceCategoryName}
-            </Text>
-            <View
-              style={[
-                styles.statusBadge,
-                getStatusStyle(serviceRequest.status),
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  getStatusTextStyle(serviceRequest.status),
-                ]}
-              >
-                {serviceRequest.status}
-              </Text>
+            <Text style={styles.cardTitle}>{serviceRequest.serviceCategoryName}</Text>
+            <View style={[styles.statusBadge, getStatusStyle(serviceRequest.status)]}>
+              <Text style={[styles.statusText, getStatusTextStyle(serviceRequest.status)]}>{serviceRequest.status}</Text>
             </View>
           </View>
 
@@ -124,15 +94,11 @@ export default function HistoryDetail() {
             <Text style={styles.sectionTitle}>Request Timeline</Text>
             <View style={styles.detailRow}>
               <Ionicons name="calendar-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>
-                Created: {formatToNepalTime(serviceRequest.createdAt)}
-              </Text>
+              <Text style={styles.detailText}>Created: {formatToNepalTime(serviceRequest.createdAt)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>
-                Expired: {formatToNepalTime(serviceRequest.expiresAt)}
-              </Text>
+              <Text style={styles.detailText}>Expired: {formatToNepalTime(serviceRequest.expiresAt)}</Text>
             </View>
           </View>
 
@@ -140,67 +106,41 @@ export default function HistoryDetail() {
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.detailRow}>
               <Ionicons name="location-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>
-                {serviceRequest.locationAddress}
-              </Text>
+              <Text style={styles.detailText}>{serviceRequest.locationAddress}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="business-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>
-                {serviceRequest.locationCity}
-              </Text>
+              <Text style={styles.detailText}>{serviceRequest.locationCity}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="mail-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>
-                {serviceRequest.locationPostalCode}
-              </Text>
+              <Text style={styles.detailText}>{serviceRequest.locationPostalCode}</Text>
             </View>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Services Requested</Text>
             {serviceRequest.serviceListNames &&
-              serviceRequest.serviceListNames.map(
-                (service: string, index: number) => (
-                  <View key={index} style={styles.detailRow}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={16}
-                      color="#666"
-                    />
-                    <Text style={styles.detailText}>{service}</Text>
-                  </View>
-                )
-              )}
+              serviceRequest.serviceListNames.map((service: string, index: number) => (
+                <View key={index} style={styles.detailRow}>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#666" />
+                  <Text style={styles.detailText}>{service}</Text>
+                </View>
+              ))}
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.descriptionText}>
-              {serviceRequest.description || "No description provided"}
-            </Text>
+            <Text style={styles.descriptionText}>{serviceRequest.description || "No description provided"}</Text>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Request Images</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.imagesContainer}
-            >
-              {serviceRequest.serviceRequestImagePaths &&
-              serviceRequest.serviceRequestImagePaths.length > 0 ? (
-                serviceRequest.serviceRequestImagePaths.map(
-                  (imageUri: string, index: number) => (
-                    <Image
-                      key={index}
-                      source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
-                      style={styles.problemImage}
-                      resizeMode="cover"
-                    />
-                  )
-                )
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
+              {serviceRequest.serviceRequestImagePaths && serviceRequest.serviceRequestImagePaths.length > 0 ? (
+                serviceRequest.serviceRequestImagePaths.map((imageUri: string, index: number) => (
+                  <Image key={index} source={{ uri: `${IMAGE_API_URL}${imageUri}` }} style={styles.problemImage} resizeMode="cover" />
+                ))
               ) : (
                 <Text style={{ color: "#999" }}>No images uploaded</Text>
               )}
@@ -211,21 +151,15 @@ export default function HistoryDetail() {
               <Text style={styles.sectionTitle}>Service Provider Details</Text>
               <View style={styles.detailRow}>
                 <Ionicons name="person-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>
-                  Provider: {offerDetails.providerName}
-                </Text>
+                <Text style={styles.detailText}>Provider: {offerDetails.providerName}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Ionicons name="pricetag-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>
-                  Price: NPR {offerDetails.offeredPrice}
-                </Text>
+                <Text style={styles.detailText}>Price: NPR {offerDetails.offeredPrice}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Ionicons name="calendar-outline" size={16} color="#666" />
-                <Text style={styles.detailText}>
-                  Sent At: {formatToNepalTime(offerDetails.sentAt)}
-                </Text>
+                <Text style={styles.detailText}>Sent At: {formatToNepalTime(offerDetails.sentAt)}</Text>
               </View>
             </View>
           )}

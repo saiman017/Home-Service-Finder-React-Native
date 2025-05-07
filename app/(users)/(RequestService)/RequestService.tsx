@@ -630,12 +630,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import MapView, { Marker } from "react-native-maps";
 import { fetchServiceListByCategory } from "@/store/slice/serviceList";
-import {
-  createServiceRequest,
-  resetServiceRequestState,
-  uploadServiceRequestImages,
-  getServiceRequestById,
-} from "@/store/slice/serviceRequest";
+import { createServiceRequest, resetServiceRequestState, uploadServiceRequestImages, getServiceRequestById } from "@/store/slice/serviceRequest";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
@@ -648,21 +643,11 @@ const DRAG_THRESHOLD = 50;
 export default function ServiceRequestScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const params = useLocalSearchParams();
-  const categoryId =
-    typeof params.categoryId === "string" ? params.categoryId : "";
+  const categoryId = typeof params.categoryId === "string" ? params.categoryId : "";
 
   const { currentLocation } = useSelector((state: RootState) => state.location);
-  const {
-    servicesByCategory,
-    loading: servicesLoading,
-    error: servicesError,
-  } = useSelector((state: RootState) => state.serviceList);
-  const {
-    isLoading: requestLoading,
-    error: requestError,
-    success: requestSuccess,
-    currentRequest,
-  } = useSelector((state: RootState) => state.serviceRequest);
+  const { servicesByCategory, loading: servicesLoading, error: servicesError } = useSelector((state: RootState) => state.serviceList);
+  const { isLoading: requestLoading, error: requestError, success: requestSuccess, currentRequest } = useSelector((state: RootState) => state.serviceRequest);
   const { userId } = useSelector((state: RootState) => state.auth);
 
   // Initialize with an empty array since we'll allow removing images
@@ -738,10 +723,7 @@ export default function ServiceRequestScreen() {
         const dy = gesture.dy - lastY.current;
         lastY.current = gesture.dy;
 
-        const newHeight = Math.max(
-          PANEL_MIN_HEIGHT,
-          Math.min(PANEL_MAX_HEIGHT, panelHeight - dy)
-        );
+        const newHeight = Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, panelHeight - dy));
         animatedHeight.setValue(newHeight);
       },
       onPanResponderRelease: (_, gesture) => {
@@ -760,10 +742,7 @@ export default function ServiceRequestScreen() {
           }).start();
           setIsPanelExpanded(false);
         } else {
-          const toValue =
-            panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2
-              ? PANEL_MAX_HEIGHT
-              : PANEL_MIN_HEIGHT;
+          const toValue = panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2 ? PANEL_MAX_HEIGHT : PANEL_MIN_HEIGHT;
 
           Animated.spring(animatedHeight, {
             toValue,
@@ -791,17 +770,11 @@ export default function ServiceRequestScreen() {
 
   // New function to remove an image from the selected images array
   const removeImage = (indexToRemove: number) => {
-    setSelectedImages((prev) =>
-      prev.filter((_, index) => index !== indexToRemove)
-    );
+    setSelectedImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const toggleService = (serviceId: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
-    );
+    setSelectedServices((prev) => (prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]));
     setShowDropdown(false);
   };
 
@@ -859,12 +832,7 @@ export default function ServiceRequestScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          region={mapRegion}
-          scrollEnabled
-          zoomEnabled
-        >
+        <MapView style={styles.map} region={mapRegion} scrollEnabled zoomEnabled>
           {currentLocation && (
             <Marker
               coordinate={{
@@ -875,92 +843,49 @@ export default function ServiceRequestScreen() {
           )}
         </MapView>
 
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.panel}>
         <Animated.View style={{ height: animatedHeight }}>
-          <View
-            style={styles.dragHandleContainer}
-            {...panResponder.panHandlers}
-          >
+          <View style={styles.dragHandleContainer} {...panResponder.panHandlers}>
             <View style={styles.dragHandle} />
           </View>
 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.panelContent}
-            keyboardVerticalOffset={40}
-          >
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.panelContent} keyboardVerticalOffset={40}>
             <ScrollView contentContainerStyle={styles.scrollViewContent}>
               {servicesLoading ? (
-                <ActivityIndicator size="large" color="#F8C52B" />
+                <ActivityIndicator size="large" color="#3F63C7" />
               ) : servicesError ? (
                 <Text>Failed to load services. Please try again.</Text>
               ) : (
                 <>
                   <Text style={styles.label}>Select Services</Text>
                   <View style={styles.dropdownContainer}>
-                    <TouchableOpacity
-                      style={[styles.input, styles.selectContainer]}
-                      onPress={() => setShowDropdown(!showDropdown)}
-                    >
-                      <Text
-                        style={
-                          selectedServices.length > 0
-                            ? styles.inputText
-                            : styles.placeholderText
-                        }
-                        numberOfLines={1}
-                      >
+                    <TouchableOpacity style={[styles.input, styles.selectContainer]} onPress={() => setShowDropdown(!showDropdown)}>
+                      <Text style={selectedServices.length > 0 ? styles.inputText : styles.placeholderText} numberOfLines={1}>
                         {getSelectedServicesText()}
                       </Text>
-                      <Ionicons
-                        name={showDropdown ? "chevron-up" : "chevron-down"}
-                        size={20}
-                        color="#808080"
-                      />
+                      <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={20} color="#808080" />
                     </TouchableOpacity>
 
                     {showDropdown && (
                       <View style={styles.dropdownList}>
                         {servicesByCategory.map((service) => (
-                          <TouchableOpacity
-                            key={service.id}
-                            style={styles.dropdownItem}
-                            onPress={() => toggleService(service.id)}
-                          >
-                            <Text
-                              style={[
-                                styles.dropdownItemText,
-                                selectedServices.includes(service.id) &&
-                                  styles.selectedItemText,
-                              ]}
-                            >
-                              {service.name.charAt(0).toUpperCase() +
-                                service.name.slice(1).toLowerCase()}
+                          <TouchableOpacity key={service.id} style={styles.dropdownItem} onPress={() => toggleService(service.id)}>
+                            <Text style={[styles.dropdownItemText, selectedServices.includes(service.id) && styles.selectedItemText]}>
+                              {service.name.charAt(0).toUpperCase() + service.name.slice(1).toLowerCase()}
                             </Text>
-                            {selectedServices.includes(service.id) && (
-                              <Ionicons
-                                name="checkmark"
-                                size={16}
-                                color="#3F63C7"
-                              />
-                            )}
+                            {selectedServices.includes(service.id) && <Ionicons name="checkmark" size={16} color="#3F63C7" />}
                           </TouchableOpacity>
                         ))}
                       </View>
                     )}
                   </View>
 
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Additional Details (Optional)
-                  </Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Additional Details (Optional)</Text>
                   <TextInput
                     style={styles.textArea}
                     placeholder="Describe your issue in detail..."
@@ -971,61 +896,28 @@ export default function ServiceRequestScreen() {
                     textAlignVertical="top"
                   />
 
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Upload Images (Max 6)
-                  </Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Upload Images (Max 6)</Text>
 
-                  <TouchableOpacity
-                    style={styles.uploadButton}
-                    onPress={pickImages}
-                    disabled={selectedImages.length >= 6}
-                  >
+                  <TouchableOpacity style={styles.uploadButton} onPress={pickImages} disabled={selectedImages.length >= 6}>
                     <View style={styles.uploadPlaceholder}>
-                      <Ionicons
-                        name="image-outline"
-                        size={24}
-                        color="#808080"
-                      />
-                      <Text style={styles.uploadText}>
-                        {selectedImages.length >= 6
-                          ? "Max images uploaded"
-                          : "Tap to upload images"}
-                      </Text>
+                      <Ionicons name="image-outline" size={24} color="#808080" />
+                      <Text style={styles.uploadText}>{selectedImages.length >= 6 ? "Max images uploaded" : "Tap to upload images"}</Text>
                     </View>
                   </TouchableOpacity>
 
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.imagesScrollView}
-                  >
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScrollView}>
                     {selectedImages.map((uri, index) => (
                       <View key={index} style={styles.imageContainer}>
                         <Image source={{ uri }} style={styles.previewImage} />
-                        <TouchableOpacity
-                          style={styles.removeImageButton}
-                          onPress={() => removeImage(index)}
-                        >
-                          <Ionicons
-                            name="close-circle"
-                            size={22}
-                            color="#ff3b30"
-                          />
+                        <TouchableOpacity style={styles.removeImageButton} onPress={() => removeImage(index)}>
+                          <Ionicons name="close-circle" size={22} color="#ff3b30" />
                         </TouchableOpacity>
                       </View>
                     ))}
                   </ScrollView>
 
-                  <TouchableOpacity
-                    style={styles.findButton}
-                    onPress={findService}
-                    disabled={requestLoading}
-                  >
-                    {requestLoading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.findButtonText}>Find Service</Text>
-                    )}
+                  <TouchableOpacity style={styles.findButton} onPress={findService} disabled={requestLoading}>
+                    {requestLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.findButtonText}>Find Service</Text>}
                   </TouchableOpacity>
                 </>
               )}

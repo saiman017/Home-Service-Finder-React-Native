@@ -14,6 +14,7 @@ import serviceListReducer from "./slice/serviceList";
 import serviceRequestReducer from "./slice/serviceRequest";
 import serviceProviderReducer from "./slice/serviceProvider";
 import serviceOfferReducer from "./slice/serviceOffer";
+import ratingReducer from "./slice/rating";
 
 const persistConfig = {
   key: "root",
@@ -34,6 +35,7 @@ const rootReducer = combineReducers({
   serviceRequest: serviceRequestReducer,
   serviceProvider: serviceProviderReducer,
   serviceOffer: serviceOfferReducer,
+  rating: ratingReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -51,9 +53,4 @@ export const persistor = persistStore(store);
 // Type definitions
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-export type AppThunk<ReturnType = void> = ThunkAction<
-  ReturnType,
-  RootState,
-  unknown,
-  Action<string>
->;
+export type AppThunk<ReturnType = void> = ThunkAction<ReturnType, RootState, unknown, Action<string>>;

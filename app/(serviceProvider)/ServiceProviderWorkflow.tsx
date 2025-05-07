@@ -1,18 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
-  Animated,
-  PanResponder,
-  Dimensions,
-  ScrollView,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, SafeAreaView, Animated, PanResponder, Dimensions, ScrollView, Image } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import * as ExpoLocation from "expo-location";
@@ -21,17 +8,16 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { updatePaymentStatus } from "@/store/slice/serviceOffer";
-import {
-  getServiceRequestById,
-  updateServiceRequestStatus,
-} from "@/store/slice/serviceRequest";
+import { getServiceRequestById, updateServiceRequestStatus } from "@/store/slice/serviceRequest";
 import { getOfferById, updateOfferStatus } from "@/store/slice/serviceOffer";
 import { googleMapsService } from "@/store/slice/googleMapsService";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { clearCurrentOffer } from "@/store/slice/serviceOffer";
+import Constants from "expo-constants";
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAPS_API_KEY ?? "default_value";
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
 // Panel dimensions
 const { height } = Dimensions.get("window");
@@ -64,10 +50,7 @@ export default function ServiceProviderWorkflow() {
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const lastY = useRef(0);
   const animatedHeight = useRef(new Animated.Value(PANEL_MIN_HEIGHT)).current;
-  const { connected: requestSignalRConnected } = useServiceRequestSignalR(
-    undefined,
-    serviceRequestId as string
-  );
+  const { connected: requestSignalRConnected } = useServiceRequestSignalR(undefined, serviceRequestId as string);
 
   // Alert refs
   const statusAlertShownRef = useRef(false);
@@ -82,15 +65,11 @@ export default function ServiceProviderWorkflow() {
       try {
         setIsLoading(true);
         if (offerId) {
-          const offerResponse = await dispatch(
-            getOfferById(offerId as string)
-          ).unwrap();
+          const offerResponse = await dispatch(getOfferById(offerId as string)).unwrap();
           setOfferDetails(offerResponse);
         }
         if (serviceRequestId) {
-          const requestResponse = await dispatch(
-            getServiceRequestById(serviceRequestId as string)
-          ).unwrap();
+          const requestResponse = await dispatch(getServiceRequestById(serviceRequestId as string)).unwrap();
           setServiceRequest(requestResponse);
         }
 
@@ -113,41 +92,61 @@ export default function ServiceProviderWorkflow() {
     };
   }, [offerId, serviceRequestId, dispatch]);
 
-  // Monitor payment status changes
+  // // Monitor payment status changes
+  // useEffect(() => {
+  //   if (offerDetails?.paymentStatus === true && !paymentAlertShownRef.current) {
+  //     paymentAlertShownRef.current = true;
+  //     Alert.alert("Payment Received", "Payment has been confirmed.", [
+  //       {
+  //         text: "Go to Home",
+  //         onPress: () => {
+  //           paymentAlertShownRef.current = false;
+  //           router.replace("/(serviceProvider)/(tab)/home");
+  //         },
+  //       },
+  //     ]);
+  //   }
+  // }, [offerDetails?.paymentStatus]);
+
+  // Work completion alert
+  // useEffect(() => {
+  //   if (offerDetails?.status === "Completed" && !completionAlertShownRef.current) {
+  //     completionAlertShownRef.current = true;
+  //     Alert.alert("Work Completed", "The service has been marked as completed.", [
+  //       {
+  //         text: "OK",
+  //         onPress: () => (completionAlertShownRef.current = false),
+  //       },
+  //     ]);
+  //   }
+  // }, [offerDetails?.status]);
+  const lastStatusRef = useRef<string | null>(null);
+  const lastPaymentRef = useRef<boolean | null>(null);
+
   useEffect(() => {
-    if (offerDetails?.paymentStatus === true && !paymentAlertShownRef.current) {
-      paymentAlertShownRef.current = true;
-      Alert.alert("Payment Received", "Payment has been confirmed.", [
+    if (!offerDetails) return;
+
+    const { status, paymentStatus } = offerDetails;
+
+    // Completed Work Alert
+    if (status === "Completed" && lastStatusRef.current !== "Completed") {
+      Alert.alert("Work Completed", "Provider has completed the work.", [{ text: "OK" }]);
+    }
+
+    // Payment Received Alert
+    if (paymentStatus === true && lastPaymentRef.current !== true) {
+      Alert.alert("Payment Received", "", [
         {
-          text: "Go to Home",
-          onPress: () => {
-            paymentAlertShownRef.current = false;
-            router.replace("/(serviceProvider)/(tab)/home");
-          },
+          text: "Ok",
+          onPress: () => router.replace("/(serviceProvider)/(tab)/home"),
         },
       ]);
     }
-  }, [offerDetails?.paymentStatus]);
 
-  // Work completion alert
-  useEffect(() => {
-    if (
-      offerDetails?.status === "Completed" &&
-      !completionAlertShownRef.current
-    ) {
-      completionAlertShownRef.current = true;
-      Alert.alert(
-        "Work Completed",
-        "The service has been marked as completed.",
-        [
-          {
-            text: "OK",
-            onPress: () => (completionAlertShownRef.current = false),
-          },
-        ]
-      );
-    }
-  }, [offerDetails?.status]);
+    // Update last refs
+    lastStatusRef.current = status;
+    lastPaymentRef.current = paymentStatus;
+  }, [offerDetails?.status, offerDetails?.paymentStatus]);
 
   // Clean up refs on unmount
   useEffect(() => {
@@ -171,10 +170,7 @@ export default function ServiceProviderWorkflow() {
   const requestLocationPermissionAndStartTracking = async () => {
     const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        "Location permission is required to show distance to customer."
-      );
+      Alert.alert("Permission Denied", "Location permission is required to show distance to customer.");
       return;
     }
 
@@ -212,27 +208,16 @@ export default function ServiceProviderWorkflow() {
 
   // Update map and calculate route when currentLocation or serviceRequest changes
   useEffect(() => {
-    if (
-      currentLocation &&
-      serviceRequest &&
-      serviceRequest.locationLatitude &&
-      serviceRequest.locationLongitude
-    ) {
+    if (currentLocation && serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude) {
       // Calculate new route
       calculateDetailedRoute();
 
       // Update map region to show both points
-      const midLat =
-        (currentLocation.latitude + serviceRequest.locationLatitude) / 2;
-      const midLng =
-        (currentLocation.longitude + serviceRequest.locationLongitude) / 2;
+      const midLat = (currentLocation.latitude + serviceRequest.locationLatitude) / 2;
+      const midLng = (currentLocation.longitude + serviceRequest.locationLongitude) / 2;
 
-      const latDelta =
-        Math.abs(currentLocation.latitude - serviceRequest.locationLatitude) *
-        3;
-      const lngDelta =
-        Math.abs(currentLocation.longitude - serviceRequest.locationLongitude) *
-        3;
+      const latDelta = Math.abs(currentLocation.latitude - serviceRequest.locationLatitude) * 3;
+      const lngDelta = Math.abs(currentLocation.longitude - serviceRequest.locationLongitude) * 3;
 
       setMapRegion({
         latitude: midLat,
@@ -244,32 +229,18 @@ export default function ServiceProviderWorkflow() {
   }, [currentLocation, serviceRequest]);
 
   const calculateDetailedRoute = async () => {
-    if (
-      !currentLocation ||
-      !serviceRequest ||
-      !serviceRequest.locationLatitude ||
-      !serviceRequest.locationLongitude
-    ) {
+    if (!currentLocation || !serviceRequest || !serviceRequest.locationLatitude || !serviceRequest.locationLongitude) {
       return;
     }
 
     try {
-      const result = await googleMapsService.getRouteInfo(
-        currentLocation.latitude,
-        currentLocation.longitude,
-        serviceRequest.locationLatitude,
-        serviceRequest.locationLongitude
-      );
+      const result = await googleMapsService.getRouteInfo(currentLocation.latitude, currentLocation.longitude, serviceRequest.locationLatitude, serviceRequest.locationLongitude);
 
       if (result) {
-        const distanceValue = parseFloat(
-          result.distanceMatrix.distance.replace(" km", "")
-        );
+        const distanceValue = parseFloat(result.distanceMatrix.distance.replace(" km", ""));
         const formattedDistance = distanceValue.toFixed(2) + " km";
 
-        const durationValue = parseFloat(
-          result.distanceMatrix.duration.replace(" mins", "")
-        );
+        const durationValue = parseFloat(result.distanceMatrix.duration.replace(" mins", ""));
         const formattedDuration = durationValue.toFixed(1) + " mins";
 
         setDistance(formattedDistance);
@@ -290,6 +261,7 @@ export default function ServiceProviderWorkflow() {
     }
   };
 
+  const actionTriggeredRef = useRef(false);
   const handleReachedDestination = async () => {
     try {
       // Check if we're already in progress
@@ -323,6 +295,7 @@ export default function ServiceProviderWorkflow() {
       Alert.alert("Arrival Confirmed", "You can now begin the service work.");
     } catch (error) {
       console.error("Error updating status:", error);
+      actionTriggeredRef.current = false;
       Alert.alert("Error", "Failed to update status. Please try again.");
     } finally {
       setIsLoading(false);
@@ -365,6 +338,7 @@ export default function ServiceProviderWorkflow() {
     } catch (error) {
       console.error("Error updating status:", error);
       Alert.alert("Error", "Failed to update status. Please try again.");
+      actionTriggeredRef.current = false;
     } finally {
       setIsLoading(false);
     }
@@ -380,10 +354,7 @@ export default function ServiceProviderWorkflow() {
         const dy = gesture.dy - lastY.current;
         lastY.current = gesture.dy;
 
-        const newHeight = Math.max(
-          PANEL_MIN_HEIGHT,
-          Math.min(PANEL_MAX_HEIGHT, panelHeight - dy)
-        );
+        const newHeight = Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_MAX_HEIGHT, panelHeight - dy));
         animatedHeight.setValue(newHeight);
       },
       onPanResponderRelease: (_, gesture) => {
@@ -402,10 +373,7 @@ export default function ServiceProviderWorkflow() {
           }).start();
           setIsPanelExpanded(false);
         } else {
-          const toValue =
-            panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2
-              ? PANEL_MAX_HEIGHT
-              : PANEL_MIN_HEIGHT;
+          const toValue = panelHeight > (PANEL_MIN_HEIGHT + PANEL_MAX_HEIGHT) / 2 ? PANEL_MAX_HEIGHT : PANEL_MIN_HEIGHT;
 
           Animated.spring(animatedHeight, {
             toValue,
@@ -452,6 +420,7 @@ export default function ServiceProviderWorkflow() {
     } catch (error) {
       console.error("Payment update error:", error);
       Alert.alert("Error", "Failed to confirm payment.");
+      actionTriggeredRef.current = false;
     } finally {
       setIsLoading(false);
     }
@@ -475,9 +444,7 @@ export default function ServiceProviderWorkflow() {
         <View style={styles.routeLine} />
         <View style={styles.routeEndpointContainer}>
           <View style={[styles.endpointDot, styles.destinationDot]} />
-          <Text style={styles.destinationText}>
-            {serviceRequest.locationAddress}
-          </Text>
+          <Text style={styles.destinationText}>{serviceRequest.locationAddress}</Text>
         </View>
       </View>
     );
@@ -489,22 +456,14 @@ export default function ServiceProviderWorkflow() {
     switch (status) {
       case "Accepted":
         return (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleReachedDestination}
-            disabled={isLoading}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={handleReachedDestination} disabled={isLoading}>
             <Ionicons name="location" size={20} color="#FFFFFF" />
             <Text style={styles.buttonText}>I've Reached the Destination</Text>
           </TouchableOpacity>
         );
       case "In_Progress":
         return (
-          <TouchableOpacity
-            style={styles.completeButton}
-            onPress={handleCompletedWork}
-            disabled={isLoading}
-          >
+          <TouchableOpacity style={styles.completeButton} onPress={handleCompletedWork} disabled={isLoading}>
             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
             <Text style={styles.buttonText}>I've Completed the Work</Text>
           </TouchableOpacity>
@@ -512,24 +471,12 @@ export default function ServiceProviderWorkflow() {
       case "Completed":
         return (
           <View style={styles.paymentContainer}>
-            <TouchableOpacity
-              style={styles.paymentButton}
-              onPress={handleReceivePayment}
-              disabled={isLoading || offerDetails?.paymentStatus === true}
-            >
-              <Text style={styles.paymentText}>
-                {offerDetails?.paymentStatus === true
-                  ? "Payment Received"
-                  : "I've Received Payment"}
-              </Text>
+            <TouchableOpacity style={styles.paymentButton} onPress={handleReceivePayment} disabled={isLoading || offerDetails?.paymentStatus === true}>
+              <Text style={styles.paymentText}>{offerDetails?.paymentStatus === true ? "Payment Received" : "I've Received Payment"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleNotReceived}
-              disabled={isLoading || offerDetails?.paymentStatus === true}
-            >
+            {/* <TouchableOpacity style={styles.cancelButton} onPress={handleNotReceived} disabled={isLoading || offerDetails?.paymentStatus === true}>
               <Text style={styles.cancelText}>Not Received</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         );
       default:
@@ -549,62 +496,51 @@ export default function ServiceProviderWorkflow() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          region={mapRegion}
-          showsUserLocation={true}
-        >
-          {serviceRequest &&
-            serviceRequest.locationLatitude &&
-            serviceRequest.locationLongitude && (
-              <Marker
-                coordinate={{
-                  latitude: serviceRequest.locationLatitude,
-                  longitude: serviceRequest.locationLongitude,
-                }}
-                title="Customer Location"
-                identifier="destination"
-              >
-                <View style={styles.destinationMarker}>
-                  <Ionicons name="location" size={20} color="#FFFFFF" />
-                </View>
-              </Marker>
-            )}
+        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} region={mapRegion} showsUserLocation={true}>
+          {serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude && (
+            <Marker
+              coordinate={{
+                latitude: serviceRequest.locationLatitude,
+                longitude: serviceRequest.locationLongitude,
+              }}
+              title="Customer Location"
+              identifier="destination"
+            >
+              <View style={styles.destinationMarker}>
+                <Ionicons name="location" size={20} color="#FFFFFF" />
+              </View>
+            </Marker>
+          )}
 
-          {currentLocation &&
-            serviceRequest &&
-            serviceRequest.locationLatitude &&
-            serviceRequest.locationLongitude && (
-              <MapViewDirections
-                origin={{
-                  latitude: currentLocation.latitude,
-                  longitude: currentLocation.longitude,
-                }}
-                destination={{
-                  latitude: serviceRequest.locationLatitude,
-                  longitude: serviceRequest.locationLongitude,
-                }}
-                apikey={GOOGLE_MAPS_API_KEY}
-                strokeWidth={4}
-                strokeColor="#FF3B30"
-                onReady={(result) => {
-                  const distanceValue = result.distance;
-                  const formattedDistance = distanceValue.toFixed(2) + " km";
-                  const durationValue = result.duration;
-                  const formattedDuration = durationValue.toFixed(1) + " mins";
+          {currentLocation && serviceRequest && serviceRequest.locationLatitude && serviceRequest.locationLongitude && (
+            <MapViewDirections
+              origin={{
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+              }}
+              destination={{
+                latitude: serviceRequest.locationLatitude,
+                longitude: serviceRequest.locationLongitude,
+              }}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={4}
+              strokeColor="#FF3B30"
+              onReady={(result) => {
+                const distanceValue = result.distance;
+                const formattedDistance = distanceValue.toFixed(2) + " km";
+                const durationValue = result.duration;
+                const formattedDuration = durationValue.toFixed(1) + " mins";
 
-                  setDistance(formattedDistance);
-                  setDuration(formattedDuration);
+                setDistance(formattedDistance);
+                setDuration(formattedDuration);
 
-                  mapRef.current?.fitToCoordinates(result.coordinates, {
-                    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-                    animated: true,
-                  });
-                }}
-              />
-            )}
+                mapRef.current?.fitToCoordinates(result.coordinates, {
+                  edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+                  animated: true,
+                });
+              }}
+            />
+          )}
         </MapView>
       </View>
 
@@ -628,52 +564,29 @@ export default function ServiceProviderWorkflow() {
 
           <View style={styles.detailsContainer}>
             <Text style={styles.label}>Service Category</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.serviceCategoryName || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.serviceCategoryName || "N/A"}</Text>
             <Text style={styles.label}>Services Requested</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.serviceListNames?.join(", ") || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.serviceListNames?.join(", ") || "N/A"}</Text>
             <Text style={styles.label}>Customer</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.customerName || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.customerName || "N/A"}</Text>
             <Text style={styles.label}>Location</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.locationAddress || "N/A"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.locationAddress || "N/A"}</Text>
 
             <Text style={styles.label}>Description</Text>
-            <Text style={styles.value}>
-              {serviceRequest?.description || "No additional details"}
-            </Text>
+            <Text style={styles.value}>{serviceRequest?.description || "No additional details"}</Text>
             {serviceRequest?.serviceRequestImagePaths?.length > 0 && (
               <View style={styles.imagesSection}>
                 <Text style={styles.sectionTitle}>Problem Images</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.imagesContainer}
-                >
-                  {serviceRequest.serviceRequestImagePaths.map(
-                    (imageUri: string, index: number) => (
-                      <Image
-                        key={index}
-                        source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
-                        style={styles.problemImage}
-                        resizeMode="cover"
-                      />
-                    )
-                  )}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
+                  {serviceRequest.serviceRequestImagePaths.map((imageUri: string, index: number) => (
+                    <Image key={index} source={{ uri: `${IMAGE_API_URL}${imageUri}` }} style={styles.problemImage} resizeMode="cover" />
+                  ))}
                 </ScrollView>
               </View>
             )}
 
             <Text style={styles.label}>Your Offer</Text>
-            <Text style={styles.priceValue}>
-              NPR {offerDetails?.offeredPrice || "N/A"}
-            </Text>
+            <Text style={styles.priceValue}>NPR {offerDetails?.offeredPrice || "N/A"}</Text>
           </View>
 
           <View style={styles.buttonContainer}>{renderActionButton()}</View>

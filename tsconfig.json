@@ -12,6 +12,8 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts",
-    "app/(serviceProvider)/paymentcanceltsx"
+    "app/(serviceProvider)/paymentcanceltsx",
+    "node_modules/expo-modules-core/**/*.ts",
+    "node_modules/react-native-dotenv/**/*.ts"
   ]
 }
