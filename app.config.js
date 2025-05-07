@@ -23,7 +23,7 @@ export default {
       },
       config: {
         googleMaps: {
-          apiKey: "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q",
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
         },
       },
       navigationBarColor: "#FFFFFF",
@@ -52,8 +52,7 @@ export default {
         // Added location plugin configuration
         "expo-location",
         {
-          locationAlwaysAndWhenInUsePermission:
-            "Allow Home Service Finder to use your location.",
+          locationAlwaysAndWhenInUsePermission: "Allow Home Service Finder to use your location.",
         },
       ],
     ],
@@ -61,7 +60,9 @@ export default {
       typedRoutes: true,
     },
     extra: {
-      googleMapsApiKey: "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q",
+      IMAGE_API_URL: process.env.IMAGE_API_URL,
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
+      BACKEND_API_URL: process.env.BACKEND_API_URL,
       eas: {
         projectId: "your-eas-project-id",
       },

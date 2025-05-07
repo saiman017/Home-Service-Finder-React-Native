@@ -193,7 +193,7 @@
 //           {currentUser?.profilePicture ? (
 //             <Image
 //               source={{
-//                 uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+//                 uri: `${IMAGE_API_URL}${currentUser.profilePicture}`,
 //               }}
 //               style={styles.profileImage}
 //             />
@@ -226,7 +226,7 @@
 //           ) : (
 //             <View style={styles.serviceGrid}>
 //               {categories.map((category) => {
-//                 const imageUri = category.categoryImage ? `http://10.0.2.2:5039${category.categoryImage}` : null;
+//                 const imageUri = category.categoryImage ? `${IMAGE_API_URL}${category.categoryImage}` : null;
 
 //                 return (
 //                   <TouchableOpacity key={category._id || category.id} style={styles.serviceItem} onPress={() => navigateToService(category._id || category.id, category.name)}>
@@ -441,14 +441,15 @@ import { fetchLocation } from "@/store/slice/location";
 import { getActiveRequestsByCustomerId, getPendingRequestsByCustomerId, getServiceRequestById } from "@/store/slice/serviceRequest";
 import { fetchUserById, selectUserById } from "@/store/slice/user";
 import { getOffersByRequestId } from "@/store/slice/serviceOffer";
+import Constants from "expo-constants";
 
 const { width } = Dimensions.get("window");
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
-// Enhanced feature slide interface with title, subtitle, images and nullable options
 interface FeatureSlide {
   id: string;
-  image?: any; // Main feature image (now optional)
-  backgroundImage?: any; // Background image (optional)
+  image?: any;
+  backgroundImage?: any;
   title: string;
   subtitle: string;
   highlightedText: string;
@@ -691,7 +692,7 @@ export default function Home() {
           {currentUser?.profilePicture ? (
             <Image
               source={{
-                uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+                uri: `${IMAGE_API_URL}${currentUser.profilePicture}`,
               }}
               style={styles.profileImage}
             />
@@ -724,7 +725,7 @@ export default function Home() {
           ) : (
             <View style={styles.serviceGrid}>
               {categories.map((category) => {
-                const imageUri = category.categoryImage ? `http://10.0.2.2:5039${category.categoryImage}` : null;
+                const imageUri = category.categoryImage ? `${IMAGE_API_URL}${category.categoryImage}` : null;
 
                 return (
                   <TouchableOpacity key={category._id || category.id} style={styles.serviceItem} onPress={() => navigateToService(category._id || category.id, category.name)}>

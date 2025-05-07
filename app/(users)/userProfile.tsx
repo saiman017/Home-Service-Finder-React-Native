@@ -1,32 +1,19 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, SafeAreaView } from "react-native";
 import Header from "@/components/Header";
-import {
-  Ionicons,
-  MaterialIcons,
-  FontAwesome5,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import { fetchUserById, selectUserById } from "@/store/slice/user";
 import type { AppDispatch, RootState } from "@/store/store";
+import Constants from "expo-constants";
 
 export default function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
   const { userId } = useSelector((state: RootState) => state.auth);
   const currentUser = useSelector(selectUserById);
   const [loading, setLoading] = useState(true);
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -35,10 +22,7 @@ export default function UserProfile() {
           await dispatch(fetchUserById(userId));
         } catch (error) {
           console.error("Failed to fetch user data:", error);
-          Alert.alert(
-            "Error",
-            "Failed to load profile data. Please try again."
-          );
+          Alert.alert("Error", "Failed to load profile data. Please try again.");
         } finally {
           setLoading(false);
         }
@@ -73,39 +57,25 @@ export default function UserProfile() {
   return (
     <View style={styles.container}>
       <Header title="Profile" showBackButton={true} />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Profile Header with Image */}
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
             {currentUser?.profilePicture ? (
               <Image
                 source={{
-                  uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+                  uri: `${IMAGE_API_URL}${currentUser.profilePicture}`,
                 }}
                 style={styles.profileImage}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>
-                <Text
-                  style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}
-                >
-                  {currentUser
-                    ? `${currentUser.firstName?.[0] || ""}${
-                        currentUser.lastName?.[0] || ""
-                      }`
-                    : ""}
-                </Text>
+                <Text style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}>{currentUser ? `${currentUser.firstName?.[0] || ""}${currentUser.lastName?.[0] || ""}` : ""}</Text>
               </View>
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.editProfileButton}
-            onPress={handleEditProfile}
-          >
+          <TouchableOpacity style={styles.editProfileButton} onPress={handleEditProfile}>
             <MaterialIcons name="edit" size={18} color="#FFFFFF" />
             <Text style={styles.editProfileButtonText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -117,11 +87,7 @@ export default function UserProfile() {
             <View style={styles.infoItem}>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Full Name</Text>
-                <Text style={styles.infoValue}>
-                  {currentUser
-                    ? `${currentUser.firstName} ${currentUser.lastName}`
-                    : "Not provided"}
-                </Text>
+                <Text style={styles.infoValue}>{currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : "Not provided"}</Text>
               </View>
             </View>
 
@@ -130,9 +96,7 @@ export default function UserProfile() {
             <View style={styles.infoItem}>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>
-                  {currentUser?.email || "Not provided"}
-                </Text>
+                <Text style={styles.infoValue}>{currentUser?.email || "Not provided"}</Text>
               </View>
             </View>
 
@@ -141,9 +105,7 @@ export default function UserProfile() {
             <View style={styles.infoItem}>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Phone Number</Text>
-                <Text style={styles.infoValue}>
-                  {currentUser?.phoneNumber || "Not provided"}
-                </Text>
+                <Text style={styles.infoValue}>{currentUser?.phoneNumber || "Not provided"}</Text>
               </View>
             </View>
 
@@ -152,9 +114,7 @@ export default function UserProfile() {
             <View style={styles.infoItem}>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Gender</Text>
-                <Text style={styles.infoValue}>
-                  {currentUser?.gender || "Not provided"}
-                </Text>
+                <Text style={styles.infoValue}>{currentUser?.gender || "Not provided"}</Text>
               </View>
             </View>
 
@@ -163,11 +123,7 @@ export default function UserProfile() {
             <View style={styles.infoItem}>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Date of Birth</Text>
-                <Text style={styles.infoValue}>
-                  {currentUser?.dateOfBirth
-                    ? formatDate(currentUser.dateOfBirth)
-                    : "Not provided"}
-                </Text>
+                <Text style={styles.infoValue}>{currentUser?.dateOfBirth ? formatDate(currentUser.dateOfBirth) : "Not provided"}</Text>
               </View>
             </View>
           </View>

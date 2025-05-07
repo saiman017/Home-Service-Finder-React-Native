@@ -11,11 +11,13 @@ import OfferNotification from "@/components/Notification";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { Image } from "react-native";
+import Constants from "expo-constants";
 
 const { height } = Dimensions.get("window");
 const PANEL_MIN_HEIGHT = 400;
 const PANEL_MAX_HEIGHT = height * 0.6;
 const DRAG_THRESHOLD = 50;
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
 export default function AfterRequestService() {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,28 +45,6 @@ export default function AfterRequestService() {
     console.log("Request SignalR connection:", signalRConnected);
     console.log("Offer SignalR connection:", offerSignalRConnected);
   }, [signalRConnected, offerSignalRConnected]);
-
-  // useEffect(() => {
-  //   const requestId = serviceRequestId || currentRequest?.id;
-
-  //   if (requestId) {
-  //     // Get the request details
-  //     dispatch(getServiceRequestById(requestId));
-
-  //     // Check for offers
-  //     dispatch(getOffersByRequestId(requestId));
-
-  //     // Only set up polling if SignalR is not connected
-  //     if (!signalRConnected) {
-  //       const intervalId = setInterval(() => {
-  //         dispatch(getOffersByRequestId(requestId));
-  //         dispatch(getServiceRequestById(requestId)); // Also refresh request status
-  //       }, 10000); // Poll every 10 seconds
-
-  //       return () => clearInterval(intervalId);
-  //     }
-  //   }
-  // }, [serviceRequestId, currentRequest?.id, dispatch, signalRConnected]);
 
   useEffect(() => {
     const requestId = serviceRequestId || currentRequest?.id;
@@ -376,7 +356,7 @@ export default function AfterRequestService() {
                           <View key={index} style={styles.imageContainer}>
                             <Image
                               source={{
-                                uri: `http://10.0.2.2:5039${imageUri}`,
+                                uri: `${IMAGE_API_URL}${imageUri}`,
                               }}
                               style={styles.image}
                               resizeMode="cover"

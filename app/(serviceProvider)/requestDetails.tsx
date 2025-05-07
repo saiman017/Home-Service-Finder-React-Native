@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { useLocalSearchParams, router } from "expo-router";
@@ -20,32 +10,27 @@ import { TimeRemainingMinSec } from "@/components/TImeRemainingBanner";
 import { sendServiceOffer } from "@/store/slice/serviceOffer";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { getServiceRequestById } from "@/store/slice/serviceRequest";
+import Constants from "expo-constants";
 
 export default function CustomerRequestDetails() {
   const { requestId } = useLocalSearchParams();
   const dispatch = useDispatch<AppDispatch>();
   const [offerPrice, setOfferPrice] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
-  const { pendingRequests } = useSelector(
-    (state: RootState) => state.serviceRequest
-  );
+  const { pendingRequests } = useSelector((state: RootState) => state.serviceRequest);
 
   const { userId } = useSelector((state: RootState) => state.auth);
-  const { isLoading: offerLoading } = useSelector(
-    (state: RootState) => state.serviceOffer
-  );
-  const { currentRequest } = useSelector(
-    (state: RootState) => state.serviceRequest
-  );
+  const { isLoading: offerLoading } = useSelector((state: RootState) => state.serviceOffer);
+  const { currentRequest } = useSelector((state: RootState) => state.serviceRequest);
 
   const { connected } = useServiceOfferSignalR(
     userId as string, // Provider ID
     requestId as string // Request ID
   );
   useEffect(() => {
-    const requestIdStr =
-      typeof requestId === "string" ? requestId : requestId?.[0] ?? "";
+    const requestIdStr = typeof requestId === "string" ? requestId : requestId?.[0] ?? "";
     if (requestIdStr) {
       dispatch(getServiceRequestById(requestIdStr));
     }
@@ -93,16 +78,12 @@ export default function CustomerRequestDetails() {
 
       // Check if the action was fulfilled
       if (sendServiceOffer.fulfilled.match(resultAction)) {
-        Alert.alert(
-          "Offer Sent",
-          "Your price offer has been sent to the customer",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(serviceProvider)/(tab)/home"),
-            },
-          ]
-        );
+        Alert.alert("Offer Sent", "Your price offer has been sent to the customer", [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(serviceProvider)/(tab)/home"),
+          },
+        ]);
 
         // No need to manually refresh data as SignalR will push updates
       } else {
@@ -121,9 +102,7 @@ export default function CustomerRequestDetails() {
       <ScrollView style={styles.scrollContainer}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>
-              {requestDetails.serviceCategoryName}
-            </Text>
+            <Text style={styles.cardTitle}>{requestDetails.serviceCategoryName}</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>{requestDetails.status}</Text>
             </View>
@@ -134,15 +113,11 @@ export default function CustomerRequestDetails() {
             <Text style={styles.sectionTitle}>Customer Information</Text>
             <View style={styles.detailRow}>
               <Ionicons name="person-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                {requestDetails.customerName || "Customer name not available"}
-              </Text>
+              <Text style={styles.detailText}>{requestDetails.customerName || "Customer name not available"}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="call-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                {requestDetails.customerName || "Phone not available"}
-              </Text>
+              <Text style={styles.detailText}>{requestDetails.customerName || "Phone not available"}</Text>
             </View>
           </View>
           {/* Location Information */}
@@ -150,15 +125,11 @@ export default function CustomerRequestDetails() {
             <Text style={styles.sectionTitle}>Location Details</Text>
             <View style={styles.detailRow}>
               <Ionicons name="location-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                {requestDetails.locationAddress}
-              </Text>
+              <Text style={styles.detailText}>{requestDetails.locationAddress}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="business-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                {requestDetails.locationCity}
-              </Text>
+              <Text style={styles.detailText}>{requestDetails.locationCity}</Text>
             </View>
           </View>
           {/* Service Details */}
@@ -166,48 +137,30 @@ export default function CustomerRequestDetails() {
             <Text style={styles.sectionTitle}>Service Details</Text>
             <View style={styles.detailRow}>
               <Ionicons name="list-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                Services: {requestDetails.serviceListNames?.join(", ")}
-              </Text>
+              <Text style={styles.detailText}>Services: {requestDetails.serviceListNames?.join(", ")}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="time-outline" size={18} color="#666" />
-              <Text style={styles.detailText}>
-                Created: {formatToNepalTime(requestDetails.createdAt)}
-              </Text>
+              <Text style={styles.detailText}>Created: {formatToNepalTime(requestDetails.createdAt)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="alarm-outline" size={18} color="#666" />
               <Text style={styles.detailText}>
-                Expires After:{" "}
-                <TimeRemainingMinSec expiresAt={requestDetails.expiresAt} />
+                Expires After: <TimeRemainingMinSec expiresAt={requestDetails.expiresAt} />
               </Text>
             </View>
           </View>
           {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.descriptionText}>
-              {requestDetails.description || "No description provided"}
-            </Text>
+            <Text style={styles.descriptionText}>{requestDetails.description || "No description provided"}</Text>
           </View>
           {/* Problem Images */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Problem Images</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.imagesContainer}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
               {problemImages.length > 0 ? (
-                problemImages.map((imageUri, index) => (
-                  <Image
-                    key={imageUri}
-                    source={{ uri: `http://10.0.2.2:5039${imageUri}` }}
-                    style={styles.problemImage}
-                    resizeMode="cover"
-                  />
-                ))
+                problemImages.map((imageUri, index) => <Image key={imageUri} source={{ uri: `${IMAGE_API_URL}${imageUri}` }} style={styles.problemImage} resizeMode="cover" />)
               ) : (
                 <Text style={{ color: "#999" }}>No images uploaded</Text>
               )}
@@ -217,32 +170,15 @@ export default function CustomerRequestDetails() {
           {/* Price Offer Section */}
           <View style={styles.offerSection}>
             <Text style={styles.sectionTitle}>Send Price Offer</Text>
-            <Text style={styles.offerInstructions}>
-              Please specify your price to complete this service
-            </Text>
+            <Text style={styles.offerInstructions}>Please specify your price to complete this service</Text>
 
             <View style={styles.priceInputContainer}>
               <Text style={styles.currencySymbol}>NPR</Text>
-              <TextInput
-                style={styles.priceInput}
-                value={offerPrice}
-                onChangeText={setOfferPrice}
-                placeholder="Enter your price"
-                keyboardType="numeric"
-                placeholderTextColor="#999"
-              />
+              <TextInput style={styles.priceInput} value={offerPrice} onChangeText={setOfferPrice} placeholder="Enter your price" keyboardType="numeric" placeholderTextColor="#999" />
             </View>
 
-            <TouchableOpacity
-              style={styles.sendOfferButton}
-              onPress={handleSendOffer}
-              disabled={isSending || offerLoading}
-            >
-              {isSending || offerLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.sendOfferButtonText}>Send Offer</Text>
-              )}
+            <TouchableOpacity style={styles.sendOfferButton} onPress={handleSendOffer} disabled={isSending || offerLoading}>
+              {isSending || offerLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendOfferButtonText}>Send Offer</Text>}
             </TouchableOpacity>
           </View>
         </View>

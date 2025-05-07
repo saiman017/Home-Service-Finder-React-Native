@@ -13,9 +13,11 @@ import { getOfferById, updateOfferStatus } from "@/store/slice/serviceOffer";
 import { googleMapsService } from "@/store/slice/googleMapsService";
 import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 import { clearCurrentOffer } from "@/store/slice/serviceOffer";
+import Constants from "expo-constants";
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = "AIzaSyB8s9qKa8kx8AHQU3dXK3xbbKiMCxwNR9Q";
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAPS_API_KEY ?? "default_value";
+const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
 // Panel dimensions
 const { height } = Dimensions.get("window");
@@ -577,7 +579,7 @@ export default function ServiceProviderWorkflow() {
                 <Text style={styles.sectionTitle}>Problem Images</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesContainer}>
                   {serviceRequest.serviceRequestImagePaths.map((imageUri: string, index: number) => (
-                    <Image key={index} source={{ uri: `http://10.0.2.2:5039${imageUri}` }} style={styles.problemImage} resizeMode="cover" />
+                    <Image key={index} source={{ uri: `${IMAGE_API_URL}${imageUri}` }} style={styles.problemImage} resizeMode="cover" />
                   ))}
                 </ScrollView>
               </View>

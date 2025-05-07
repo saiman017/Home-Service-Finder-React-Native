@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { fetchServiceCategories, setSelectedCategoryId } from "@/store/slice/serviceCategory";
+import Constants from "expo-constants";
 
 interface CategoryItem {
   id: string;
@@ -14,7 +15,8 @@ interface CategoryItem {
 
 export default function ServiceCategoryScreen() {
   const dispatch = useAppDispatch();
-  const BASE_URL = "http://10.0.2.2:5039";
+
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
   const { isLoading, categories, error, serviceCategoryId } = useAppSelector((state) => state.serviceCategory);
 
@@ -58,7 +60,7 @@ export default function ServiceCategoryScreen() {
         <View key={categories[i].id} style={styles.gridItem}>
           <TouchableOpacity style={[styles.categoryItem, serviceCategoryId === categories[i].id && styles.selectedItem]} onPress={() => handleCategorySelect(categories[i].id)}>
             <Image
-              source={categories[i].categoryImage ? { uri: `http://10.0.2.2:5039${categories[i].categoryImage}` } : require("@/assets/images/gardener.png")}
+              source={categories[i].categoryImage ? { uri: `${IMAGE_API_URL}${categories[i].categoryImage}` } : require("@/assets/images/gardener.png")}
               style={styles.categoryImage}
               resizeMode="contain"
             />
@@ -72,7 +74,7 @@ export default function ServiceCategoryScreen() {
           <View key={categories[i + 1].id} style={styles.gridItem}>
             <TouchableOpacity style={[styles.categoryItem, serviceCategoryId === categories[i + 1].id && styles.selectedItem]} onPress={() => handleCategorySelect(categories[i + 1].id)}>
               <Image
-                source={categories[i + 1].categoryImage ? { uri: `http://10.0.2.2:5039${categories[i + 1].categoryImage}` } : require("@/assets/images/gardener.png")}
+                source={categories[i + 1].categoryImage ? { uri: `${IMAGE_API_URL}${categories[i + 1].categoryImage}` } : require("@/assets/images/gardener.png")}
                 style={styles.categoryImage}
                 resizeMode="contain"
               />

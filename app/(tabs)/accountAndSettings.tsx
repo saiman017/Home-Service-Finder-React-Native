@@ -8,11 +8,13 @@ import { router } from "expo-router";
 import { fetchUserById, selectUserById } from "@/store/slice/user";
 import type { AppDispatch, RootState } from "@/store/store";
 import { clearCurrentLocation } from "@/store/slice/location";
+import Constants from "expo-constants";
 
 export default function AccountAndSettings() {
   const dispatch = useDispatch<AppDispatch>();
   const { userId } = useSelector((state: RootState) => state.auth);
   const currentUser = useSelector(selectUserById);
+  const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
 
   useEffect(() => {
     if (userId) {
@@ -53,7 +55,7 @@ export default function AccountAndSettings() {
               {currentUser?.profilePicture ? (
                 <Image
                   source={{
-                    uri: `http://10.0.2.2:5039${currentUser.profilePicture}`,
+                    uri: `${IMAGE_API_URL}${currentUser.profilePicture}`,
                   }}
                   style={styles.profileImage}
                 />
