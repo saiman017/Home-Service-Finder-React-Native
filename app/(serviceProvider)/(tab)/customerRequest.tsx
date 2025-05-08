@@ -1,14 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { getPendingRequestsByCategory } from "@/store/slice/serviceRequest";
@@ -21,31 +12,19 @@ import { useServiceRequestSignalR } from "@/hooks/useServiceRequestSignalR";
 
 export default function CustomerRequest() {
   const dispatch = useDispatch<AppDispatch>();
-  const { pendingRequests, isLoading: requestsLoading } = useSelector(
-    (state: RootState) => state.serviceRequest
-  );
-  const { selectedProvider, isLoading: providerLoading } = useSelector(
-    (state: RootState) => state.serviceProvider
-  );
-  const { requestsWithOffers } = useSelector(
-    (state: RootState) => state.serviceOffer
-  );
-  const { userId, role, isAuthenticated } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { pendingRequests, isLoading: requestsLoading } = useSelector((state: RootState) => state.serviceRequest);
+  const { selectedProvider, isLoading: providerLoading } = useSelector((state: RootState) => state.serviceProvider);
+  const { requestsWithOffers } = useSelector((state: RootState) => state.serviceOffer);
+  const { userId, role, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   const [refreshing, setRefreshing] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
 
-  const { connected: signalRConnected, connectionError } =
-    useServiceRequestSignalR(categoryId || undefined);
+  const { connected: signalRConnected, connectionError } = useServiceRequestSignalR(categoryId || undefined);
 
   useEffect(() => {
     if (connectionError) {
-      Alert.alert(
-        "Connection Issue",
-        "Real-time updates may be delayed. Please check your internet connection."
-      );
+      Alert.alert("Connection Issue", "Real-time updates may be delayed. Please check your internet connection.");
     }
   }, [connectionError]);
 
@@ -55,22 +34,11 @@ export default function CustomerRequest() {
     }
   }, [dispatch, userId, role, isAuthenticated]);
 
-  // useEffect(() => {
-  //   if (selectedProvider?.serviceCategoryId) {
-  //     const catId = selectedProvider.serviceCategoryId;
-  //     setCategoryId(catId);
-  //     if (!signalRConnected) {
-  //       dispatch(getPendingRequestsByCategory(catId));
-  //     }
-  //   }
-  // }, [selectedProvider, signalRConnected]);
-
   useEffect(() => {
     if (selectedProvider?.serviceCategoryId) {
       const catId = selectedProvider.serviceCategoryId;
       setCategoryId(catId);
 
-      // Always fetch pending requests when categoryId updates (for initial load)
       dispatch(getPendingRequestsByCategory(catId));
     }
   }, [selectedProvider]);
@@ -99,12 +67,7 @@ export default function CustomerRequest() {
   }, [dispatch, userId, role, signalRConnected]);
 
   const filteredRequests = useMemo(() => {
-    return pendingRequests?.filter(
-      (req) =>
-        !requestsWithOffers.includes(req.id) &&
-        req.status !== "Cancelled" &&
-        req.status !== "Expired"
-    );
+    return pendingRequests?.filter((req) => !requestsWithOffers.includes(req.id) && req.status !== "Cancelled" && req.status !== "Expired");
   }, [pendingRequests, requestsWithOffers]);
 
   const handleViewDetails = (requestId: string) => {
@@ -117,9 +80,7 @@ export default function CustomerRequest() {
   const renderRequestItem = ({ item }: { item: any }) => (
     <View style={styles.requestCard}>
       <View style={styles.requestHeader}>
-        <Text style={styles.requestTitle}>
-          {item.serviceCategoryName || "Service Request"}
-        </Text>
+        <Text style={styles.requestTitle}>{item.serviceCategoryName || "Service Request"}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{item.status || "NEW"}</Text>
         </View>
@@ -127,27 +88,18 @@ export default function CustomerRequest() {
       <View style={styles.requestDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>
-            {item.locationAddress || "Location not specified"}
-          </Text>
+          <Text style={styles.detailText}>{item.locationAddress || "Location not specified"}</Text>
         </View>
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>
-            {formatToNepalTime(item.createdAt) || "Date not available"}
-          </Text>
+          <Text style={styles.detailText}>{formatToNepalTime(item.createdAt) || "Date not available"}</Text>
         </View>
         <View style={styles.servicesList}>
           <Text style={styles.servicesLabel}>Services: </Text>
-          <Text style={styles.servicesText}>
-            {item.serviceListNames?.join(", ") || "No services specified"}
-          </Text>
+          <Text style={styles.servicesText}>{item.serviceListNames?.join(", ") || "No services specified"}</Text>
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.viewButton}
-        onPress={() => handleViewDetails(item.id)}
-      >
+      <TouchableOpacity style={styles.viewButton} onPress={() => handleViewDetails(item.id)}>
         <Text style={styles.viewButtonText}>View Details</Text>
       </TouchableOpacity>
     </View>
@@ -158,32 +110,6 @@ export default function CustomerRequest() {
   return (
     <View style={styles.container}>
       <Header title="Customer Requests" showBackButton={true} />
-      {/* {categoryId && (
-        <View
-          style={[
-            styles.connectionIndicator,
-            { backgroundColor: signalRConnected ? "#E8F5E9" : "#ffeeee" },
-          ]}
-        >
-          <Ionicons
-            name={
-              signalRConnected ? "checkmark-circle-outline" : "wifi-outline"
-            }
-            size={16}
-            color={signalRConnected ? "#2E7D32" : "#777"}
-          />
-          <Text
-            style={[
-              styles.connectionText,
-              { color: signalRConnected ? "#2E7D32" : "#777" },
-            ]}
-          >
-            {signalRConnected
-              ? "Real-time updates enabled"
-              : "Using periodic updates"}
-          </Text>
-        </View>
-      )} */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3F63C7" />
@@ -195,27 +121,18 @@ export default function CustomerRequest() {
             renderItem={renderRequestItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.requestsList}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing || isLoading}
-                onRefresh={onRefresh}
-              />
-            }
+            refreshControl={<RefreshControl refreshing={refreshing || isLoading} onRefresh={onRefresh} />}
           />
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="alert-circle-outline" size={60} color="#999" />
-            <Text style={styles.emptyText}>
-              No requests available for your service category
-            </Text>
+            <Text style={styles.emptyText}>No requests available for your service category</Text>
           </View>
         )
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={60} color="#999" />
-          <Text style={styles.emptyText}>
-            Unable to load your service category
-          </Text>
+          <Text style={styles.emptyText}>Unable to load your service category</Text>
         </View>
       )}
     </View>

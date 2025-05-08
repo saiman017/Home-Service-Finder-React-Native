@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import ServiceProviderCustomTabBar from "@/components/ServiceProviderCustomTab"; // Update the import path as needed
+import ServiceProviderCustomTabBar from "@/components/ServiceProviderCustomTab";
 
 export default function TabLayout() {
   return (

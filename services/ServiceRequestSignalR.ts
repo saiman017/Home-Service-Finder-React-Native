@@ -28,7 +28,7 @@ class ServiceRequestSignalRService {
 
     try {
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${BACKEND_API_URL}/requestHub`, {
+        .withUrl(`http://10.0.2.2:5039/requestHub`, {
           transport: signalR.HttpTransportType.WebSockets,
         })
         .withAutomaticReconnect({

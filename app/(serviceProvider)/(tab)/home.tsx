@@ -9,6 +9,7 @@ import { fetchLocation } from "@/store/slice/location";
 import { useServiceOfferSignalR } from "@/hooks/useServiceOfferSignalR";
 import { fetchProviderStatistics } from "@/store/slice/serviceProvider";
 import Constants from "expo-constants";
+import RevenueOverTimeChart from "@/components/RevenueOverTimeChart";
 
 const { width } = Dimensions.get("window");
 const IMAGE_API_URL = Constants.expoConfig?.extra?.IMAGE_API_URL ?? "default_value";
@@ -228,27 +229,13 @@ export default function Home() {
                 </View>
               </View>
             </View>
+            <View style={styles.chart}>
+              <RevenueOverTimeChart providerId={userId} />
+            </View>
+
             {/* First Row */}
           </>
         )}
-
-        {/* Chart Section */}
-        {/* <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Performance Analytics</Text>
-          <FlatList
-            ref={flatListRef}
-            data={chartData}
-            renderItem={renderChartItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onViewableItemsChanged={handleViewableItemsChanged}
-            viewabilityConfig={viewabilityConfig}
-            contentContainerStyle={styles.carouselContainer}
-          />
-          {renderPaginationDots()}
-        </View> */}
       </ScrollView>
     </View>
   );
@@ -292,10 +279,23 @@ const styles = StyleSheet.create({
   },
   dashBoard: {
     paddingTop: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     // marginTop: 10,
     backgroundColor: "#FFFFFF",
     height: 340,
+    shadowColor: "#dedede",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  chart: {
+    paddingTop: 16,
+    marginTop: 5,
+    // paddingHorizontal: 10,
+    // marginTop: 10,
+    backgroundColor: "#FFFFFF",
+    height: 390,
     shadowColor: "#dedede",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

@@ -1,8 +1,7 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { getAxiosInstance } from "@/axios/axiosinstance";
 import { setMessage } from "./message";
 
-// Type definitions for API responses and data structures
 interface ServiceProvider {
   id: string;
   email: string;
@@ -25,6 +24,11 @@ interface ServiceProvider {
   modifiedAt: string;
 }
 
+export interface RevenueEntry {
+  period: string;
+  amount: number;
+}
+
 interface ProviderStatistics {
   totalEarnings: number;
   totalCompletedOffers: number;
@@ -37,8 +41,13 @@ interface ServiceProviderState {
   providers: ServiceProvider[];
   selectedProvider: ServiceProvider | null;
   statistics: ProviderStatistics | null;
+  revenue: RevenueEntry[];
   isLoading: boolean;
   error: string | null;
+  statsLoading: boolean;
+  statsError: string | null;
+  revenueLoading: boolean;
+  revenueError: string | null;
 }
 
 interface APIResponse {
@@ -82,95 +91,70 @@ const initialState: ServiceProviderState = {
   providers: [],
   selectedProvider: null,
   statistics: null,
-
+  revenue: [],
   isLoading: false,
   error: null,
+  statsLoading: false,
+  statsError: null,
+  revenueLoading: false,
+  revenueError: null,
 };
 
 // Async thunks for API interactions
-export const fetchAllServiceProviders = createAsyncThunk(
-  "serviceProvider/fetchAll",
-  async (_, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await getAxiosInstance().get("/serviceProvider");
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage =
-          response.data.message || "Failed to fetch service providers";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
-      }
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Failed to fetch service providers";
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
+export const fetchAllServiceProviders = createAsyncThunk("serviceProvider/fetchAll", async (_, { rejectWithValue, dispatch }) => {
+  try {
+    const response = await getAxiosInstance().get("/serviceProvider");
+    if (!response.data.success || response.data.code >= 400) {
+      const errorMessage = response.data.message || "Failed to fetch service providers";
+      dispatch(setMessage({ data: errorMessage }));
+      return rejectWithValue(errorMessage);
     }
+    return response.data.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch service providers";
+    dispatch(setMessage({ data: message }));
+    return rejectWithValue(message);
   }
-);
+});
 
-export const fetchServiceProviderById = createAsyncThunk(
-  "serviceProvider/fetchById",
-  async (id: string, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await getAxiosInstance().get(`/serviceProvider/${id}`);
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage =
-          response.data.message || "Failed to fetch service provider details";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
-      }
-      return response.data.data;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        "Failed to fetch service provider details";
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
+export const fetchServiceProviderById = createAsyncThunk("serviceProvider/fetchById", async (id: string, { rejectWithValue, dispatch }) => {
+  try {
+    const response = await getAxiosInstance().get(`/serviceProvider/${id}`);
+    if (!response.data.success || response.data.code >= 400) {
+      const errorMessage = response.data.message || "Failed to fetch service provider details";
+      dispatch(setMessage({ data: errorMessage }));
+      return rejectWithValue(errorMessage);
     }
+    return response.data.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch service provider details";
+    dispatch(setMessage({ data: message }));
+    return rejectWithValue(message);
   }
-);
+});
 
-export const registerServiceProvider = createAsyncThunk(
-  "serviceProvider/register",
-  async (
-    providerData: ServiceProviderRequestDto,
-    { rejectWithValue, dispatch }
-  ) => {
-    try {
-      const response = await getAxiosInstance().post(
-        "/serviceProvider",
-        providerData
-      );
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage = response.data.message || "Registration failed";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
-      }
-      dispatch(setMessage({ data: "Registration successful!" }));
-      return response.data.data;
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Registration failed";
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
+export const registerServiceProvider = createAsyncThunk("serviceProvider/register", async (providerData: ServiceProviderRequestDto, { rejectWithValue, dispatch }) => {
+  try {
+    const response = await getAxiosInstance().post("/serviceProvider", providerData);
+    if (!response.data.success || response.data.code >= 400) {
+      const errorMessage = response.data.message || "Registration failed";
+      dispatch(setMessage({ data: errorMessage }));
+      return rejectWithValue(errorMessage);
     }
+    dispatch(setMessage({ data: "Registration successful!" }));
+    return response.data.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Registration failed";
+    dispatch(setMessage({ data: message }));
+    return rejectWithValue(message);
   }
-);
+});
 
 export const updateServiceProvider = createAsyncThunk(
   "serviceProvider/update",
-  async (
-    {
-      id,
-      updateData,
-    }: { id: string; updateData: ServiceProviderUpdateRequestDto },
-    { rejectWithValue, dispatch }
-  ) => {
+  async ({ id, updateData }: { id: string; updateData: ServiceProviderUpdateRequestDto }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await getAxiosInstance().put(
-        `/serviceProvider/${id}`,
-        updateData
-      );
+      const response = await getAxiosInstance().put(`/serviceProvider/${id}`, updateData);
       if (!response.data.success || response.data.code >= 400) {
         const errorMessage = response.data.message || "Update failed";
         dispatch(setMessage({ data: errorMessage }));
@@ -186,47 +170,54 @@ export const updateServiceProvider = createAsyncThunk(
   }
 );
 
-export const deleteServiceProvider = createAsyncThunk(
-  "serviceProvider/delete",
-  async (id: string, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await getAxiosInstance().delete(
-        `/serviceProvider/${id}`
-      );
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage = response.data.message || "Delete failed";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
-      }
-      dispatch(setMessage({ data: "Account deleted successfully!" }));
-      return id;
-    } catch (error: any) {
-      const message = error.response?.data?.message || "Delete failed";
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
+export const deleteServiceProvider = createAsyncThunk("serviceProvider/delete", async (id: string, { rejectWithValue, dispatch }) => {
+  try {
+    const response = await getAxiosInstance().delete(`/serviceProvider/${id}`);
+    if (!response.data.success || response.data.code >= 400) {
+      const errorMessage = response.data.message || "Delete failed";
+      dispatch(setMessage({ data: errorMessage }));
+      return rejectWithValue(errorMessage);
     }
+    dispatch(setMessage({ data: "Account deleted successfully!" }));
+    return id;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Delete failed";
+    dispatch(setMessage({ data: message }));
+    return rejectWithValue(message);
   }
-);
+});
 
-export const fetchProviderStatistics = createAsyncThunk(
-  "serviceProvider/fetchStatistics",
-  async (providerId: string, { rejectWithValue, dispatch }) => {
+export const fetchProviderStatistics = createAsyncThunk("serviceProvider/fetchStatistics", async (providerId: string, { rejectWithValue, dispatch }) => {
+  try {
+    const response = await getAxiosInstance().get(`/serviceProvider/statistics/${providerId}`);
+    if (!response.data.success || response.data.code >= 400) {
+      const errorMessage = response.data.message || "Failed to fetch statistics";
+      dispatch(setMessage({ data: errorMessage }));
+      return rejectWithValue(errorMessage);
+    }
+    return response.data.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || "Failed to fetch statistics";
+    dispatch(setMessage({ data: message }));
+    return rejectWithValue(message);
+  }
+});
+export const fetchProviderRevenue = createAsyncThunk<RevenueEntry[], { providerId: string; groupBy?: string }, { rejectValue: string; dispatch: any }>(
+  "serviceProvider/fetchRevenue",
+  async ({ providerId, groupBy = "month" }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await getAxiosInstance().get(
-        `/serviceProvider/statistics/${providerId}`
-      );
-      if (!response.data.success || response.data.code >= 400) {
-        const errorMessage =
-          response.data.message || "Failed to fetch statistics";
-        dispatch(setMessage({ data: errorMessage }));
-        return rejectWithValue(errorMessage);
+      const response = await getAxiosInstance().get(`/serviceProvider/${providerId}/revenue?groupBy=${groupBy}`);
+      const { success, code, data, message } = response.data;
+      if (!success || code >= 400) {
+        const err = message || "Failed to fetch revenue data";
+        dispatch(setMessage({ data: err }));
+        return rejectWithValue(err);
       }
-      return response.data.data;
+      return data as RevenueEntry[];
     } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Failed to fetch statistics";
-      dispatch(setMessage({ data: message }));
-      return rejectWithValue(message);
+      const msg = error.response?.data?.message || "Failed to fetch revenue data";
+      dispatch(setMessage({ data: msg }));
+      return rejectWithValue(msg);
     }
   }
 );
@@ -242,6 +233,20 @@ const serviceProviderSlice = createSlice({
     },
     clearSelectedProvider: (state) => {
       state.selectedProvider = null;
+    },
+    resetStatsState: (state) => {
+      state.statsLoading = false;
+      state.statsError = null;
+    },
+    clearStatistics: (state) => {
+      state.statistics = null;
+    },
+    resetRevenueState: (state) => {
+      state.revenueLoading = false;
+      state.revenueError = null;
+    },
+    clearRevenue: (state) => {
+      state.revenue = [];
     },
   },
   extraReducers: (builder) => {
@@ -298,9 +303,7 @@ const serviceProviderSlice = createSlice({
         state.isLoading = false;
         state.selectedProvider = action.payload;
         // Update in the providers array if present
-        const index = state.providers.findIndex(
-          (p) => p.id === action.payload.id
-        );
+        const index = state.providers.findIndex((p) => p.id === action.payload.id);
         if (index !== -1) {
           state.providers[index] = action.payload;
         }
@@ -317,9 +320,7 @@ const serviceProviderSlice = createSlice({
       })
       .addCase(deleteServiceProvider.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.providers = state.providers.filter(
-          (p) => p.id !== action.payload
-        );
+        state.providers = state.providers.filter((p) => p.id !== action.payload);
         if (state.selectedProvider?.id === action.payload) {
           state.selectedProvider = null;
         }
@@ -340,11 +341,22 @@ const serviceProviderSlice = createSlice({
       .addCase(fetchProviderStatistics.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(fetchProviderRevenue.pending, (state) => {
+        state.revenueLoading = true;
+        state.revenueError = null;
+      })
+      .addCase(fetchProviderRevenue.fulfilled, (state, action: PayloadAction<RevenueEntry[]>) => {
+        state.revenueLoading = false;
+        state.revenue = action.payload;
+      })
+      .addCase(fetchProviderRevenue.rejected, (state, action) => {
+        state.revenueLoading = false;
+        state.revenueError = action.payload as string;
       });
   },
 });
 
-// Export actions and reducer
-export const { resetServiceProviderState, clearSelectedProvider } =
-  serviceProviderSlice.actions;
+export const { resetServiceProviderState, clearSelectedProvider, resetStatsState, clearStatistics, resetRevenueState, clearRevenue } = serviceProviderSlice.actions;
+
 export default serviceProviderSlice.reducer;
