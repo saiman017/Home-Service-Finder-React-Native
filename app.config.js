@@ -10,10 +10,7 @@ export default {
     scheme: "myapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-    // ios: {
-    //   supportsTablet: true,
-    //   bundleIdentifier: "com.yourcompany.homeservicefinder", // Added iOS bundle identifier
-    // },
+
     android: {
       package: "com.yourcompany.homeservicefinder", // Added package name for Android
       permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
@@ -63,6 +60,7 @@ export default {
       IMAGE_API_URL: process.env.IMAGE_API_URL,
       GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
       BACKEND_API_URL: process.env.BACKEND_API_URL,
+
       eas: {
         projectId: "your-eas-project-id",
       },
