@@ -5,9 +5,7 @@ import { RootState } from "@/store/store";
 import { View, Text } from "react-native";
 
 export default function Index() {
-  const { isAuthenticated, isLoading, role } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { isAuthenticated, isLoading, role } = useSelector((state: RootState) => state.auth);
 
   console.log(role, isAuthenticated);
 
@@ -19,7 +17,6 @@ export default function Index() {
     );
   }
 
-  // Convert role to lowercase for case-insensitive comparison
   const roleLowerCase = role ? role.toLowerCase() : "";
   console.log(role);
 

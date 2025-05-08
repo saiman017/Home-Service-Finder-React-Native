@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface MessageState {
   data?: string | null;
-  // Add other message-related fields if needed
 }
 
 const initialState: MessageState = {};

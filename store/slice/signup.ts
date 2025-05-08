@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getAxiosInstance } from "@/axios/axiosinstance";
 import { setMessage } from "./message";
 
-// Interface for the signup state
 interface SignupState {
   isLoading: boolean;
   error: string | null;
@@ -36,8 +35,7 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await getAxiosInstance().post("/users", userData);
       if (!response.data.success || response.data.code >= 400) {
-        const errorMessage =
-          response.data.data || response.data.message || "Registration failed";
+        const errorMessage = response.data.data || response.data.message || "Registration failed";
         dispatch(setMessage({ data: errorMessage }));
         return rejectWithValue(errorMessage);
       }
@@ -48,11 +46,7 @@ export const registerUser = createAsyncThunk(
         email: userData.email, // Ensure email is included in the payload
       };
     } catch (error: any) {
-      const message =
-        error.response?.data?.data ||
-        error.response?.data?.message ||
-        error.message ||
-        "SignUp failed";
+      const message = error.response?.data?.data || error.response?.data?.message || error.message || "SignUp failed";
 
       dispatch(setMessage({ data: message }));
       return rejectWithValue(message);

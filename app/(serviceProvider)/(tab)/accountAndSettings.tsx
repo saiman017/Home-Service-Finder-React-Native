@@ -11,6 +11,7 @@ import { clearCurrentLocation } from "@/store/slice/location";
 import { resetServiceRequestState } from "@/store/slice/serviceRequest";
 import { resetServiceOfferState } from "@/store/slice/serviceOffer";
 import Constants from "expo-constants";
+import { ServiceProviderRating } from "@/components/ServiceProviderRating";
 
 export default function AccountAndSettings() {
   const dispatch = useDispatch<AppDispatch>();
@@ -60,18 +61,10 @@ export default function AccountAndSettings() {
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : "Loading..."}</Text>
                 <Text style={styles.profileContact}>{currentUser?.phoneNumber || ""}</Text>
+                <View style={styles.rating}>{userId && <ServiceProviderRating serviceProviderId={userId} size="medium" color="#FFB800" showCount={false} />}</View>
               </View>
             </View>
           </View>
-
-          {/* Notification */}
-          {/* <View style={styles.singleBar}>
-            <TouchableOpacity style={styles.bar}>
-              <Ionicons name="notifications" size={24} color="#525050" />
-              <Text style={styles.barText}>Notification</Text>
-              <Ionicons name="chevron-forward" size={20} color="#525050" />
-            </TouchableOpacity>
-          </View> */}
 
           {/* Account Section */}
           <View style={styles.account}>
@@ -139,6 +132,12 @@ const styles = StyleSheet.create({
   profileInfo: {
     marginLeft: 15,
     justifyContent: "center",
+  },
+  rating: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: "#FEFEFE",
   },
   profileImage: {
     width: 80,

@@ -4,12 +4,10 @@ import { TouchableOpacity, Text, StyleSheet } from "react-native";
 interface StartWorkButtonProps {
   offerId: string;
   serviceRequestId: string;
-  onPress: () => void; // ✅ Add this
+  onPress: () => void;
 }
 
-export const StartWorkButton: React.FC<StartWorkButtonProps> = ({
-  onPress,
-}) => {
+export const StartWorkButton: React.FC<StartWorkButtonProps> = ({ onPress }) => {
   return (
     <TouchableOpacity style={styles.button} onPress={onPress}>
       <Text style={styles.buttonText}>Start Work</Text>

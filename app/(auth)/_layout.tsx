@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router"; // Import router for navigation
+import { router } from "expo-router";
 import { HeaderBackButton } from "@react-navigation/elements";
 
 export default function RootLayout() {

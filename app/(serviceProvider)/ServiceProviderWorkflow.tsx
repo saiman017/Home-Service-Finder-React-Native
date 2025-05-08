@@ -92,34 +92,6 @@ export default function ServiceProviderWorkflow() {
     };
   }, [offerId, serviceRequestId, dispatch]);
 
-  // // Monitor payment status changes
-  // useEffect(() => {
-  //   if (offerDetails?.paymentStatus === true && !paymentAlertShownRef.current) {
-  //     paymentAlertShownRef.current = true;
-  //     Alert.alert("Payment Received", "Payment has been confirmed.", [
-  //       {
-  //         text: "Go to Home",
-  //         onPress: () => {
-  //           paymentAlertShownRef.current = false;
-  //           router.replace("/(serviceProvider)/(tab)/home");
-  //         },
-  //       },
-  //     ]);
-  //   }
-  // }, [offerDetails?.paymentStatus]);
-
-  // Work completion alert
-  // useEffect(() => {
-  //   if (offerDetails?.status === "Completed" && !completionAlertShownRef.current) {
-  //     completionAlertShownRef.current = true;
-  //     Alert.alert("Work Completed", "The service has been marked as completed.", [
-  //       {
-  //         text: "OK",
-  //         onPress: () => (completionAlertShownRef.current = false),
-  //       },
-  //     ]);
-  //   }
-  // }, [offerDetails?.status]);
   const lastStatusRef = useRef<string | null>(null);
   const lastPaymentRef = useRef<boolean | null>(null);
 

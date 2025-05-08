@@ -7,14 +7,13 @@ import { fetchServiceProviderById } from "@/store/slice/serviceProvider";
 import { AppDispatch, RootState } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
-
+import { ServiceProviderRating } from "@/components/ServiceProviderRating";
 interface ServiceOffer {
   id: string;
   serviceProviderId: string;
   providerName?: string;
   offeredPrice: number;
   status: string;
-  // ... other properties
 }
 
 interface OfferNotificationProps {
@@ -36,7 +35,6 @@ const OfferNotification: React.FC<OfferNotificationProps> = ({ serviceOfferData,
   const selectedProvider = useSelector((state: RootState) => state.serviceProvider.selectedProvider);
   const loadingProvider = useSelector((state: RootState) => state.serviceProvider.isLoading);
 
-  // Static rating for now - can be replaced with dynamic data later
   const providerRating = 4.7;
 
   useEffect(() => {
@@ -66,7 +64,6 @@ const OfferNotification: React.FC<OfferNotificationProps> = ({ serviceOfferData,
     onDecline(id);
   };
 
-  // Get profile picture URL if available
   const getProfilePicture = () => {
     if (selectedProvider?.profilePicture) {
       return { uri: `${IMAGE_API_URL}${selectedProvider.profilePicture}` };
@@ -74,23 +71,18 @@ const OfferNotification: React.FC<OfferNotificationProps> = ({ serviceOfferData,
     return DEFAULT_PROFILE_IMAGE;
   };
 
-  // Display the name from the provider data if available, otherwise use the one from the offer
   const displayName = selectedProvider?.firstName && selectedProvider?.lastName ? `${selectedProvider.firstName} ${selectedProvider.lastName}` : providerName || "Service Provider";
 
   return (
     <View style={styles.container}>
       <View style={styles.notificationCard}>
-        {/* Provider Basic Info */}
         <View style={styles.providerInfo}>
           <View style={styles.profileImageContainer}>
             {isLoading || loadingProvider ? <ActivityIndicator size="small" color="#3F63C7" /> : <Image source={getProfilePicture()} style={styles.profileImage} />}
           </View>
           <View style={styles.nameRatingContainer}>
             <Text style={styles.providerName}>{displayName}</Text>
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FFB800" />
-              <Text style={styles.ratingText}>{providerRating.toFixed(1)}</Text>
-            </View>
+            {serviceProviderId && <ServiceProviderRating serviceProviderId={serviceProviderId} size="medium" color="#FFB800" showCount={true} />}
           </View>
         </View>
 

@@ -41,7 +41,7 @@ class ServiceOfferSignalRService {
 
     try {
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${BACKEND_API_URL}/serviceOfferHub`, {
+        .withUrl(`http://10.0.2.2:5039/serviceOfferHub`, {
           transport: signalR.HttpTransportType.WebSockets,
         })
         .withAutomaticReconnect({

@@ -1,11 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  useCountdown,
-  formatRemainingTime,
-  getTimeElapsedPercentage,
-} from "@/utils/timeCounter";
+import { useCountdown, formatRemainingTime, getTimeElapsedPercentage } from "@/utils/timeCounter";
 
 interface TimeRemainingBannerProps {
   createdAt: string;
@@ -26,17 +22,11 @@ export function TimeRemainingMinSec({ expiresAt }: { expiresAt: string }) {
     </Text>
   );
 }
-export function TimeRemainingBanner({
-  createdAt,
-  expiresAt,
-}: TimeRemainingBannerProps) {
-  // Use the custom hook to get time remaining with automatic updates
+export function TimeRemainingBanner({ createdAt, expiresAt }: TimeRemainingBannerProps) {
   const timeInfo = useCountdown(expiresAt);
 
-  // Calculate completion percentage for the progress bar
   const completionPercentage = getTimeElapsedPercentage(createdAt, expiresAt);
 
-  // Determine color based on time remaining
   const getColorScheme = () => {
     if (timeInfo.isExpired) {
       return {
@@ -46,7 +36,6 @@ export function TimeRemainingBanner({
       };
     }
 
-    // Less than 5 minutes remaining
     if (timeInfo.totalSeconds < 300) {
       return {
         background: "#FFEBEE",
@@ -78,19 +67,12 @@ export function TimeRemainingBanner({
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.contentWrapper}>
         <Ionicons name="time" size={18} color={colors.icon} />
-        <Text style={[styles.timeText, { color: colors.text }]}>
-          {formatRemainingTime(timeInfo)}
-        </Text>
+        <Text style={[styles.timeText, { color: colors.text }]}>{formatRemainingTime(timeInfo)}</Text>
       </View>
 
       {/* Progress bar showing elapsed time */}
       <View style={styles.progressBarContainer}>
-        <View
-          style={[
-            styles.progressBar,
-            { width: `${completionPercentage}%`, backgroundColor: colors.text },
-          ]}
-        />
+        <View style={[styles.progressBar, { width: `${completionPercentage}%`, backgroundColor: colors.text }]} />
       </View>
     </View>
   );

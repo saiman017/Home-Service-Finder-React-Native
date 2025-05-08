@@ -57,69 +57,6 @@ export default function Login() {
     }
   }, [isAuthenticated, accessToken, otpRequired, loading]);
 
-  // In your login component (Login.tsx)
-  // useEffect(() => {
-  //   if (loading) return;
-
-  //   const handlePostLoginFlow = async () => {
-  //     if (
-  //       isAuthenticated &&
-  //       accessToken &&
-  //       role?.toLowerCase() === "customer"
-  //     ) {
-  //       try {
-  //         // Check for pending requests
-  //         const result = await dispatch(checkPendingRequests(userId!)).unwrap();
-
-  //         if (result && result.length > 0) {
-  //           // Get the most recent pending request
-  //           const mostRecentRequest = result[0];
-
-  //           // Dispatch to set the current request
-  //           await dispatch(
-  //             getServiceRequestById(mostRecentRequest.id)
-  //           ).unwrap();
-
-  //           // Navigate to after request service page
-  //           router.replace("/AfterRequestService");
-  //         } else {
-  //           // No pending requests, proceed normally
-  //           dispatch(clearEmail());
-  //           dispatch(serviceProviderClearEmail());
-  //           dispatch(LoginEmail());
-  //           router.replace("/(tabs)/home");
-  //         }
-  //       } catch (error) {
-  //         console.error("Error checking pending requests:", error);
-  //         // Fallback to home if there's an error
-  //         router.replace("/(tabs)/home");
-  //       }
-  //     } else if (
-  //       isAuthenticated &&
-  //       accessToken &&
-  //       role?.toLowerCase() === "serviceprovider"
-  //     ) {
-  //       // Handle service provider flow
-  //       dispatch(clearEmail());
-  //       dispatch(serviceProviderClearEmail());
-  //       dispatch(LoginEmail());
-  //       router.replace("/(serviceProvider)/(tab)/home");
-  //     }
-  //   };
-
-  //   if (isAuthenticated && accessToken && role) {
-  //     handlePostLoginFlow();
-  //   }
-  // }, [
-  //   isAuthenticated,
-  //   accessToken,
-  //   role,
-  //   otpRequired,
-  //   loading,
-  //   dispatch,
-  //   userId,
-  // ]);
-
   const validateEmail = (email: string) => {
     const re = /\S+@\S+\.\S+/;
     if (!email) {

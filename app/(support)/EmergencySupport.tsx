@@ -17,14 +17,6 @@ export default function EmergencySupport() {
           <Text style={styles.cardTitle}>General Emergency</Text>
           <Text style={styles.cardNumber}>911</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => handleCall("100")}>
-          <Text style={styles.cardTitle}>Police</Text>
-          <Text style={styles.cardNumber}>100</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => handleCall("101")}>
-          <Text style={styles.cardTitle}>Fire Department</Text>
-          <Text style={styles.cardNumber}>101</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

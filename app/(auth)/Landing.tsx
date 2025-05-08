@@ -19,19 +19,19 @@ export default function Landing(): React.ReactElement {
       id: "1",
       title: "Find Trusted Pros",
       description: "Browse top-rated home service providers near you",
-      image: require("@/assets/images/features/Gardener.jpg"),
+      image: require("@/assets/images/features/cleaning2.jpg"),
     },
     {
       id: "2",
       title: "Get Instant Quotes",
       description: "Compare prices & pick the best fit for your budget",
-      image: require("@/assets/images/features/cleaning2.jpg"),
+      image: require("@/assets/images/features/Gardener.jpg"),
     },
     {
       id: "3",
       title: "Track & Relax",
       description: "Monitor your booking in real-time until it’s done",
-      image: require("@/assets/images/features/Gardener.jpg"),
+      image: require("@/assets/images/features/plumber4.png"),
     },
   ];
 
@@ -76,19 +76,6 @@ export default function Landing(): React.ReactElement {
 
   return (
     <View style={styles.container}>
-      {/* <View style={styles.logoContainer}>
-        <View style={styles.logoCircle}>
-          <View style={styles.logoInnerCircle}>
-            <Image
-              source={require("@/assets/images/logo2.png")} // Replace with your actual logo
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-        <Text style={styles.appName}>TravelWith</Text>
-      </View> */}
-
       <FlatList
         ref={flatListRef}
         data={slides}

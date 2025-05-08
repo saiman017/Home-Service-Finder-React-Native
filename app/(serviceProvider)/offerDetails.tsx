@@ -164,20 +164,6 @@ export default function OfferDetails() {
           </View>
         </View>
       </ScrollView>
-
-      {/* <StartWorkButton
-        offerId={offerId as string}
-        serviceRequestId={serviceRequestId as string}
-        onPress={() => {
-          router.replace({
-            pathname: "/(serviceProvider)/ServiceProviderWorkflow",
-            params: {
-              offerId: offerId as string,
-              serviceRequestId: serviceRequestId as string,
-            },
-          });
-        }}
-      /> */}
     </View>
   );
 }

@@ -3,22 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-/**
- * Reusable header component that can be configured with different elements
- * @param {Object} props Component props
- * @param {string} props.title - Header title text
- * @param {boolean} props.showBackButton - Whether to show the back button
- * @param {Function} props.onBackPress - Custom back button handler (optional)
- * @param {React.ReactNode} props.leftComponent - Custom left component (replaces back button)
- * @param {React.ReactNode} props.rightComponent - Custom right component
- */
-export default function Header({
-  title,
-  showBackButton = false,
-  onBackPress,
-  leftComponent,
-  rightComponent,
-}: any) {
+export default function Header({ title, showBackButton = false, onBackPress, leftComponent, rightComponent }: any) {
   const handleBack = () => {
     if (onBackPress) {
       onBackPress();
@@ -43,9 +28,7 @@ export default function Header({
       <Text style={styles.headerTitle}>{title}</Text>
 
       {/* Right section */}
-      <View style={styles.rightSection}>
-        {rightComponent ? rightComponent : <View style={styles.placeholder} />}
-      </View>
+      <View style={styles.rightSection}>{rightComponent ? rightComponent : <View style={styles.placeholder} />}</View>
     </View>
   );
 }

@@ -70,16 +70,6 @@ export default function AccountAndSettings() {
               </View>
             </View>
           </View>
-
-          {/* Notification */}
-          {/* <View style={styles.singleBar}>
-            <TouchableOpacity style={styles.bar}>
-              <Ionicons name="notifications" size={24} color="#525050" />
-              <Text style={styles.barText}>Notification</Text>
-              <Ionicons name="chevron-forward" size={20} color="#525050" />
-            </TouchableOpacity>
-          </View> */}
-
           {/* Account Section */}
           <View style={styles.account}>
             <Text style={styles.subtitile}>Account</Text>

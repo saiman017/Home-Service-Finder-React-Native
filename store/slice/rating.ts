@@ -20,7 +20,7 @@ export interface RatingStats {
 }
 
 interface RatingRequest {
-  userId: string; // Added userId
+  userId: string;
   serviceProviderId: string;
   value: number;
   comments?: string;
