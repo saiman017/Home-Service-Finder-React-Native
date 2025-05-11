@@ -8,8 +8,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { setEmail, resetSignupState } from "@/store/slice/serviceProviderSignUp";
 import { serviceCategoryStyles as styles } from "./ServiceCategoryStyles";
+import MaskInput, { Masks } from "react-native-mask-input";
 
-// Define types for form values
 interface PersonalInfoFormValues {
   firstName: string;
   lastName: string;
@@ -29,13 +29,35 @@ interface GenderOption {
 
 // Validation schema for first page
 const PersonalInfoSchema = Yup.object().shape({
-  firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  dateOfBirth: Yup.string().required("Date of birth is required"),
+  firstName: Yup.string()
+    .required("First name is required")
+    .matches(/^[A-Z][a-zA-Z]*$/, "First name must start with a capital letter"),
+  lastName: Yup.string()
+    .required("Last name is required")
+    .matches(/^[A-Z][a-zA-Z]*$/, "Last name must start with a capital letter"),
+  dateOfBirth: Yup.date()
+    .required("Date of birth is required")
+    .test("is-old-enough", "You must be at least 18 years old to register", function (value) {
+      if (!value) return false;
+      const today = new Date();
+      const birthDate = new Date(value);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age >= 18;
+    }),
   gender: Yup.string().required("Gender is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
-  phone: Yup.string().required("Phone number is required"),
-  password: Yup.string().min(8, "Password must be at least 8 characters").required("Password is required"),
+  email: Yup.string().email("Invalid email format").required("Email is required"),
+  phone: Yup.string()
+    .required("Phone number is required")
+    .matches(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  password: Yup.string()
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Confirm password is required"),
@@ -47,6 +69,7 @@ export default function SignUp(): React.ReactElement {
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
+  const TEN_DIGIT_MASK = Array(10).fill(/\d/);
 
   // Redux hooks
   const dispatch = useAppDispatch();
@@ -259,13 +282,15 @@ export default function SignUp(): React.ReactElement {
                   {/* Phone Number */}
                   <Text style={[styles.label, { marginTop: 16 }]}>Phone Number</Text>
                   <View style={styles.phoneContainer}>
-                    <TextInput
-                      style={[styles.phoneInput, touched.phone && errors.phone ? styles.inputError : null]}
-                      placeholder="Phone number"
+                    <MaskInput
+                      style={[styles.input, touched.phone && errors.phone ? styles.inputError : null]}
                       value={values.phone}
-                      onChangeText={handleChange("phone")}
-                      onBlur={handleBlur("phone")}
+                      onChangeText={(masked, unmasked) => {
+                        setFieldValue("phone", unmasked);
+                      }}
+                      mask={TEN_DIGIT_MASK}
                       keyboardType="phone-pad"
+                      placeholder="Phone number"
                     />
                   </View>
                   {touched.phone && errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}

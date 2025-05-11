@@ -8,14 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { clearEmail } from "@/store/slice/signup";
 import { clearEmail as serviceProviderClearEmail } from "@/store/slice/serviceProviderSignUp";
 import { clearEmail as LoginEmail } from "@/store/slice/auth";
-import { getServiceRequestById } from "@/store/slice/serviceRequest";
+import { Formik } from "formik";
+import * as Yup from "yup";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
@@ -29,69 +26,44 @@ export default function Login() {
     if (loading) {
       return;
     }
-    if (isAuthenticated && accessToken && role?.toLowerCase() == "customer") {
+    if (isAuthenticated && accessToken) {
       dispatch(clearEmail());
       dispatch(serviceProviderClearEmail());
       dispatch(LoginEmail());
 
-      console.log("sass", role);
-
-      console.log("User authenticated, redirecting to home...");
-      router.replace("/(tabs)/home");
-      return;
-    } else if (isAuthenticated && accessToken && role?.toLowerCase() == "serviceprovider") {
-      dispatch(clearEmail());
-      dispatch(serviceProviderClearEmail());
-      dispatch(LoginEmail());
-
-      console.log("sass", role);
-
-      console.log("User authenticated, redirecting to home...");
-      router.replace("/(serviceProvider)/(tab)/home");
+      if (role?.toLowerCase() === "customer") {
+        console.log("User authenticated, redirecting to customer home...");
+        router.replace("/(tabs)/home");
+      } else if (role?.toLowerCase() === "serviceprovider") {
+        console.log("User authenticated, redirecting to service provider home...");
+        router.replace("/(serviceProvider)/(tab)/home");
+      }
       return;
     }
 
-    if (otpRequired && email) {
+    if (otpRequired) {
       console.log("Email not verified, redirecting to OTP verification...");
       router.push("/(otp)/OtpVerfication");
     }
   }, [isAuthenticated, accessToken, otpRequired, loading]);
 
-  const validateEmail = (email: string) => {
-    const re = /\S+@\S+\.\S+/;
-    if (!email) {
-      setEmailError("Email is required");
-      return false;
-    } else if (!re.test(email)) {
-      setEmailError("Invalid email format");
-      return false;
-    }
-    setEmailError("");
-    return true;
-  };
+  const LoginSchema = Yup.object().shape({
+    email: Yup.string().email("Invalid email format").required("Email is required"),
+    password: Yup.string()
+      .required("Password is required")
+      .min(8, "Password must be at least 8 characters")
+      .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .matches(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character"),
+  });
 
-  const validatePassword = (password: string) => {
-    if (!password) {
-      setPasswordError("Password is required");
-      return false;
-    }
-    setPasswordError("");
-    return true;
-  };
-
-  const handleLogin = async () => {
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-    if (!isEmailValid || !isPasswordValid) {
-      return;
-    }
+  const handleLogin = async (values: { email: string; password: string }) => {
     dispatch(setOtpRequired(false));
     setLoading(true);
     try {
       await dispatch(
         login({
-          email: email.trim(),
-          password: password.trim(),
+          email: values.email.trim(),
+          password: values.password.trim(),
         })
       ).unwrap();
     } catch (error: any) {
@@ -99,7 +71,7 @@ export default function Login() {
       if (typeof error === "string" && error.includes("Failed to decode login response")) {
         Alert.alert("Login Unsuccessful", "Invalid email or password");
       } else {
-        Alert.alert("Login Unsuccessfully", error.toString());
+        Alert.alert("Login Unsuccessful", error.toString());
       }
     } finally {
       setLoading(false);
@@ -115,48 +87,52 @@ export default function Login() {
           <Text style={styles.subtitle}>Enter your email and password to log in</Text>
         </View>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, emailError ? styles.inputError : null]}
-            placeholder="Email"
-            value={email}
-            onChangeText={(text) => setEmail(text)}
-            onBlur={() => validateEmail(email)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+        <Formik initialValues={{ email: "", password: "" }} validationSchema={LoginSchema} onSubmit={handleLogin}>
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+            <View style={styles.form}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={[styles.input, touched.email && errors.email ? styles.inputError : null]}
+                placeholder="Email"
+                value={values.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {touched.email && errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
-          <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
-          <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Password"
-              value={password}
-              onChangeText={(text) => setPassword(text)}
-              onBlur={() => validatePassword(password)}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#808080" />
-            </TouchableOpacity>
-          </View>
-          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
+              <View style={[styles.passwordContainer, touched.password && errors.password ? styles.inputError : null]}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  value={values.password}
+                  onChangeText={handleChange("password")}
+                  onBlur={handleBlur("password")}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#808080" />
+                </TouchableOpacity>
+              </View>
+              {touched.password && errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-          <View style={styles.forgotPasswordContainer}>
-            <TouchableOpacity
-            // onPress={() => router.replace("/auth/forgotPassword")}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password ?</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.forgotPasswordContainer}>
+                <TouchableOpacity
+                // onPress={() => router.replace("/auth/forgotPassword")}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.loginButtonText}>Log In</Text>}
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity style={styles.loginButton} onPress={() => handleSubmit()} disabled={loading}>
+                {loading ? <ActivityIndicator size="small" color="#ffffff" /> : <Text style={styles.loginButtonText}>Log In</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
+        </Formik>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
@@ -168,7 +144,7 @@ export default function Login() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Want to be register as service provider? </Text>
+          <Text style={styles.footerText}>Want to register as service provider? </Text>
           <TouchableOpacity>
             <Text style={styles.signupText} onPress={() => router.push("/(serviceProvider)/serviceCategory")}>
               Click here
@@ -188,7 +164,6 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     padding: 24,
-    // justifyContent: "center",
   },
   header: {
     alignItems: "center",
@@ -209,7 +184,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     color: "#808080",
-    fontWeight: 500,
+    fontWeight: "500",
   },
   form: {
     marginBottom: 24,
@@ -254,7 +229,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     color: "#1e1e1e",
-    fontWeight: 500,
+    fontWeight: "500",
   },
   loginButton: {
     height: 55,
@@ -266,7 +241,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: 600,
+    fontWeight: "600",
   },
   footer: {
     marginTop: 20,

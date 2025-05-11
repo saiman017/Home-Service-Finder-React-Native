@@ -12,10 +12,10 @@ export default function EmergencySupport() {
     <View style={styles.container}>
       <Header title="Emergency Support" showBackButton />
       <View style={styles.content}>
-        <Text style={styles.heading}>Emergency Contacts</Text>
+        <Text style={styles.heading}>Customer Support</Text>
         <TouchableOpacity style={styles.card} onPress={() => handleCall("911")}>
           <Text style={styles.cardTitle}>General Emergency</Text>
-          <Text style={styles.cardNumber}>911</Text>
+          <Text style={styles.cardNumber}>+123 9844252744</Text>
         </TouchableOpacity>
       </View>
     </View>

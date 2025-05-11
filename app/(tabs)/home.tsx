@@ -6,9 +6,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { fetchServiceCategories, setSelectedCategoryId } from "@/store/slice/serviceCategory";
 import { AppDispatch, RootState } from "@/store/store";
 import { fetchLocation } from "@/store/slice/location";
-import { getActiveRequestsByCustomerId, getPendingRequestsByCustomerId, getServiceRequestById } from "@/store/slice/serviceRequest";
+import { getActiveRequestsByCustomerId, getPendingRequestsByCustomerId, getServiceRequestById, getRequestsByCustomerId } from "@/store/slice/serviceRequest";
 import { fetchUserById, selectUserById } from "@/store/slice/user";
 import { getOffersByRequestId } from "@/store/slice/serviceOffer";
+import { formatToNepalTime } from "@/utils/formattoNepalTime";
 import Constants from "expo-constants";
 
 const { width } = Dimensions.get("window");
@@ -29,7 +30,6 @@ const featureSlides: FeatureSlide[] = [
   {
     id: "1",
     backgroundImage: require("@/assets/images/features/reapir.png"),
-    // image: require("@/assets/images/features/featureCarpenter.jpg"),
     title: "",
     subtitle: "",
     highlightedText: "",
@@ -37,12 +37,10 @@ const featureSlides: FeatureSlide[] = [
   },
   {
     id: "2",
-    // image: require("@/assets/images/features/featurePlumbing.jpg"),
     backgroundImage: require("@/assets/images/features/Rimberio2.png"),
   },
   {
     id: "3",
-
     backgroundImage: require("@/assets/images/features/2.png"),
   },
 ];
@@ -52,19 +50,27 @@ export default function Home() {
   const { categories, isLoading, error } = useSelector((state: RootState) => state.serviceCategory);
   const { currentLocation } = useSelector((state: RootState) => state.location);
   const { userId } = useSelector((state: RootState) => state.auth);
+  const { customerRequests } = useSelector((state: RootState) => state.serviceRequest);
   const currentUser = useSelector(selectUserById) || null;
 
   // For carousel
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const flatListRef = useRef<FlatList<FeatureSlide>>(null);
 
+  // Filter completed and expired requests for history data
+  const historyRequests = customerRequests
+    .filter((request) => request.status === "Completed" || request.status === "Expired")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 2); // Get only the 2 most recent history items
+
   useEffect(() => {
     dispatch(fetchServiceCategories());
     if (userId) {
       dispatch(fetchUserById(userId));
       dispatch(fetchLocation(userId));
+      dispatch(getRequestsByCustomerId(userId)); // Fetch all requests for history data
     }
-  }, [dispatch]);
+  }, [dispatch, userId]);
 
   // Auto-scroll carousel every 5 seconds
   useEffect(() => {
@@ -95,6 +101,7 @@ export default function Home() {
   const goToProfile = () => {
     router.push("/(users)/userProfile");
   };
+
   const goToLocationSelect = () => {
     router.push("/(users)/(location)/setAddress");
   };
@@ -167,34 +174,6 @@ export default function Home() {
 
   const defaultIcon = require("@/assets/images/gardener.png");
 
-  // const renderCarouselItem = ({ item }: { item: FeatureSlide }) => (
-  //   <View style={styles.featureCard}>
-  //     {/* Optional background image */}
-  //     {item.backgroundImage && <Image source={item.backgroundImage} style={styles.featureBackgroundImage} resizeMode="cover" />}
-
-  //     {/* Text content section */}
-  //     <View
-  //       style={[
-  //         styles.featureTextContainer,
-  //         !item.image && { flex: 2 }, // Take more space if there's no image
-  //       ]}
-  //     >
-  //       <Text style={styles.featureTitle}>{item.title}</Text>
-  //       <View style={styles.featureSubtitleContainer}>
-  //         <Text style={styles.featureSubtitle}>{item.subtitle} </Text>
-  //         <Text style={styles.featureHighlightedText}>{item.highlightedText}</Text>
-  //       </View>
-  //       <Text style={styles.featureTagline}>{item.fetaureText}</Text>
-  //     </View>
-
-  //     {/* Optional feature image section */}
-  //     {item.image && (
-  //       <View style={styles.featureImageContainer}>
-  //         <Image source={item.image} style={styles.featureImage} resizeMode="contain" />
-  //       </View>
-  //     )}
-  //   </View>
-  // );
   const renderCarouselItem = ({ item }: { item: FeatureSlide }) => (
     <View style={[styles.featureCard, item.backgroundColor ? { backgroundColor: item.backgroundColor } : null]}>
       {/* Optional background image */}
@@ -223,6 +202,71 @@ export default function Home() {
       )}
     </View>
   );
+
+  // Render history item in slider
+  const renderHistoryItem = ({ item }: { item: any }) => {
+    const getStatusStyle = (status: string) => {
+      switch (status.toLowerCase()) {
+        case "completed":
+          return styles.statusAccepted;
+        case "expired":
+          return styles.statusExpired;
+        default:
+          return styles.statusPending;
+      }
+    };
+
+    const getStatusTextStyle = (status: string) => {
+      switch (status.toLowerCase()) {
+        case "completed":
+          return styles.statusTextAccepted;
+        case "expired":
+          return styles.statusTextExpired;
+        default:
+          return styles.statusTextPending;
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={styles.historyCard}
+        onPress={() =>
+          router.push({
+            pathname: "/(users)/historyDetail",
+            params: { serviceRequestId: item.id },
+          })
+        }
+      >
+        <View style={styles.historyHeader}>
+          <Text style={styles.historyTitle} numberOfLines={1}>
+            {item.serviceCategoryName || "Service Request"}
+          </Text>
+          <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
+            <Text style={[styles.statusText, getStatusTextStyle(item.status)]}>{item.status}</Text>
+          </View>
+        </View>
+
+        <View style={styles.historyDetails}>
+          <View style={styles.detailRow}>
+            <Ionicons name="location-outline" size={16} color="#666" />
+            <Text style={styles.detailText} numberOfLines={1}>
+              {item.locationAddress || "Location not specified"}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="document-text-outline" size={16} color="#666" />
+            <Text style={styles.detailText} numberOfLines={1}>
+              {item.serviceListNames?.join(", ") || "No services listed"}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Ionicons name="calendar-outline" size={16} color="#666" />
+            <Text style={styles.detailText}>{formatToNepalTime(item.createdAt)}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Carousel pagination dots
   const renderPaginationDots = () => {
@@ -324,12 +368,26 @@ export default function Home() {
           {renderPaginationDots()}
         </View>
 
-        {/* Orders Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Orders</Text>
-          <View style={styles.ordersContainer}>
-            <Text style={styles.noOrdersText}>No order till now....</Text>
-          </View>
+        {/* Orders/History Section */}
+        <View style={styles.recentSectionContainer}>
+          <Text style={styles.sectionTitle}>Recent Services History</Text>
+          {historyRequests.length > 0 ? (
+            <FlatList
+              data={historyRequests}
+              renderItem={renderHistoryItem}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.historySliderContainer}
+              snapToInterval={width - 60} // Account for padding and gap
+              decelerationRate="fast"
+              snapToAlignment="center"
+            />
+          ) : (
+            <View style={styles.ordersContainer}>
+              <Text style={styles.noOrdersText}>No service history available yet...</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -426,7 +484,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   errorContainer: {
     height: 150,
     justifyContent: "center",
@@ -442,6 +499,18 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     backgroundColor: "#FFFFFF",
     height: 270,
+    shadowColor: "#dedede",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  recentSectionContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    marginBottom: 5,
+    backgroundColor: "#FFFFFF",
+    height: 300,
     shadowColor: "#dedede",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -538,5 +607,82 @@ const styles = StyleSheet.create({
   noOrdersText: {
     color: "#AAAAAA",
     fontSize: 14,
+  },
+  historySliderContainer: {
+    paddingRight: 16,
+  },
+  historyCard: {
+    width: width - 64,
+    backgroundColor: "white",
+    paddingHorizontal: 2,
+    paddingVertical: 10,
+    borderRadius: 8,
+    padding: 16,
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    borderBlockColor: "#CECECE",
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+  },
+  historyDetails: {
+    marginBottom: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusPending: {
+    backgroundColor: "#FFF9C4",
+  },
+  statusAccepted: {
+    backgroundColor: "#E8F5E9",
+  },
+  statusRejected: {
+    backgroundColor: "#FFEBEE",
+  },
+  statusExpired: {
+    backgroundColor: "#ECEFF1",
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  statusTextPending: {
+    color: "#F57F17",
+  },
+  statusTextAccepted: {
+    color: "#2E7D32",
+  },
+  statusTextRejected: {
+    color: "#C62828",
+  },
+  statusTextExpired: {
+    color: "#546E7A",
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  detailText: {
+    marginLeft: 8,
+    color: "#666",
+    fontSize: 14,
+    flex: 1,
   },
 });

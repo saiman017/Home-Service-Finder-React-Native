@@ -127,10 +127,6 @@ export default function RatingForm({ serviceProviderId, serviceRequestId, onComp
             <TouchableOpacity style={[styles.submitButton, (rating === 0 || submitting) && { opacity: 0.7 }]} onPress={handleSubmit} disabled={rating === 0 || submitting}>
               {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitButtonText}>Submit</Text>}
             </TouchableOpacity>
-
-            {/* <TouchableOpacity style={styles.skipButton} onPress={() => router.replace("/(tabs)/home")} disabled={submitting}>
-              <Text style={styles.skipButtonText}>Skip Rating</Text>
-            </TouchableOpacity> */}
           </>
         )}
       </View>

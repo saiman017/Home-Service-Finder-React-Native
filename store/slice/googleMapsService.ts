@@ -35,10 +35,6 @@ export const googleMapsService = {
         },
       });
 
-      if (!res.data.predictions || res.data.status !== "OK") {
-        throw new Error(res.data.error_message || "Failed to fetch suggestions");
-      }
-
       const placesDetailsPromises = res.data.predictions.map(async (prediction: any) => {
         const detailsRes = await axios.get(`https://maps.googleapis.com/maps/api/place/details/json`, {
           params: {

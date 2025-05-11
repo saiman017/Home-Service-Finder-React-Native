@@ -57,6 +57,7 @@ export const serviceCategoryStyles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     backgroundColor: "#ffffff",
+    width: "100%",
   },
   textArea: {
     minHeight: 120,
