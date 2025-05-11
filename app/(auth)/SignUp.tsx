@@ -1,16 +1,4 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from "react-native";
 import React, { useState, useEffect } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,18 +7,39 @@ import * as Yup from "yup";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAppDispatch, useAppSelector } from "@/hooks/redux";
 import { registerUser, resetSignupState } from "@/store/slice/signup";
+import MaskInput, { Masks } from "react-native-mask-input";
 
 // Validation schema
 const SignupSchema = Yup.object().shape({
-  firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  dateOfBirth: Yup.date().required("Date of birth is required"),
+  firstName: Yup.string()
+    .required("First name is required")
+    .matches(/^[A-Z][a-zA-Z]*$/, "First name must start with a capital letter"),
+  lastName: Yup.string()
+    .required("Last name is required")
+    .matches(/^[A-Z][a-zA-Z]*$/, "Last name must start with a capital letter"),
+  dateOfBirth: Yup.date()
+    .required("Date of birth is required")
+    .test("is-old-enough", "You must be at least 15 years old to register", function (value) {
+      if (!value) return false;
+      const today = new Date();
+      const birthDate = new Date(value);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age >= 15;
+    }),
   gender: Yup.string().required("Gender is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
-  phone: Yup.string().required("Phone number is required"),
+  email: Yup.string().email("Invalid email format").required("Email is required"),
+  phone: Yup.string()
+    .required("Phone number is required")
+    .matches(/^\d{10}$/, "Phone number must be exactly 10 digits"),
   password: Yup.string()
+    .required("Password is required")
     .min(8, "Password must be at least 8 characters")
-    .required("Password is required"),
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[!@#$%^&*(),.?":{}|<>]/, "Password must contain at least one special character"),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Confirm password is required"),
@@ -42,14 +51,14 @@ export default function SignUp() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  const TEN_DIGIT_MASK = Array(10).fill(/\d/);
 
   // Redux hooks
   const dispatch = useAppDispatch();
   const { isLoading, error } = useAppSelector((state) => state.signup);
   const { data: message } = useAppSelector((state) => state.message);
 
-  // Default role ID for customer signup
-  const CUSTOMER_ROLE_ID = "d4d45e43-7201-4a64-adce-83f24226413a"; // Replace with your actual customer role ID
+  const CUSTOMER_ROLE_ID = "d4d45e43-7201-4a64-adce-83f24226413a";
 
   const genderOptions = [
     { label: "Male", value: "Male" },
@@ -57,26 +66,6 @@ export default function SignUp() {
     { label: "Other", value: "Other" },
   ];
 
-  // Effect to handle successful registration
-  // useEffect(() => {
-  //   if (isSuccess) {
-  //     Alert.alert(
-  //       "Registration Successful",
-  //       "Please check your email to verify your account.",
-  //       [
-  //         {
-  //           text: "OK",
-  //           onPress: () => {
-  //             dispatch(resetSignupState());
-  //             router.push("/(otp)/OtpVerfication");
-  //           },
-  //         },
-  //       ]
-  //     );
-  //   }
-  // }, [isSuccess]);
-
-  // Effect to handle error messages
   useEffect(() => {
     if (error) {
       Alert.alert("Registration Failed", error);
@@ -100,30 +89,19 @@ export default function SignUp() {
       const resultAction = await dispatch(registerUser(userData));
       if (registerUser.fulfilled.match(resultAction)) {
         dispatch(resetSignupState());
-        // router.push({
-        //   pathname: "/(otp)/OtpVerfication",
-        //   params: { email: values.email },
-        // });
-        Alert.alert(
-          "Registration Successful",
-          "Please check your email to verify your account.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                dispatch(resetSignupState());
-                router.push("/(otp)/OtpVerfication");
-              },
+        Alert.alert("Registration Successful", "Please check your email to verify your account.", [
+          {
+            text: "OK",
+            onPress: () => {
+              dispatch(resetSignupState());
+              router.push("/(otp)/OtpVerfication");
             },
-          ]
-        );
+          },
+        ]);
       }
     } catch (error: any) {
       console.error("SignUp error:", error);
-      Alert.alert(
-        "SignUp Failed",
-        error.message || "Invalid email or password"
-      );
+      Alert.alert("SignUp Failed", error.message || "Invalid email or password");
     }
   };
 
@@ -150,23 +128,15 @@ export default function SignUp() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
         <ScrollView style={styles.scrollView}>
           <View style={styles.inner}>
             <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
+              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                 <Ionicons name="arrow-back" size={24} color="black" />
               </TouchableOpacity>
               <Text style={styles.title}>Sign Up</Text>
-              <Text style={styles.subtitle}>
-                Create an account to continue!
-              </Text>
+              <Text style={styles.subtitle}>Create an account to continue!</Text>
             </View>
 
             <Formik
@@ -183,15 +153,7 @@ export default function SignUp() {
               validationSchema={SignupSchema}
               onSubmit={handleSubmit}
             >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                values,
-                errors,
-                touched,
-                setFieldValue,
-              }) => (
+              {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
                 <View style={styles.form}>
                   {/* First Name and Last Name in one row */}
                   <View style={styles.rowContainer}>
@@ -199,40 +161,26 @@ export default function SignUp() {
                     <View style={styles.columnContainer}>
                       <Text style={styles.label}>First Name</Text>
                       <TextInput
-                        style={[
-                          styles.input,
-                          touched.firstName && errors.firstName
-                            ? styles.inputError
-                            : null,
-                        ]}
+                        style={[styles.input, touched.firstName && errors.firstName ? styles.inputError : null]}
                         placeholder="First name"
                         value={values.firstName}
                         onChangeText={handleChange("firstName")}
                         onBlur={handleBlur("firstName")}
                       />
-                      {touched.firstName && errors.firstName ? (
-                        <Text style={styles.errorText}>{errors.firstName}</Text>
-                      ) : null}
+                      {touched.firstName && errors.firstName ? <Text style={styles.errorText}>{errors.firstName}</Text> : null}
                     </View>
 
                     {/* Last Name */}
                     <View style={styles.columnContainer}>
                       <Text style={styles.label}>Last Name</Text>
                       <TextInput
-                        style={[
-                          styles.input,
-                          touched.lastName && errors.lastName
-                            ? styles.inputError
-                            : null,
-                        ]}
+                        style={[styles.input, touched.lastName && errors.lastName ? styles.inputError : null]}
                         placeholder="Last name"
                         value={values.lastName}
                         onChangeText={handleChange("lastName")}
                         onBlur={handleBlur("lastName")}
                       />
-                      {touched.lastName && errors.lastName ? (
-                        <Text style={styles.errorText}>{errors.lastName}</Text>
-                      ) : null}
+                      {touched.lastName && errors.lastName ? <Text style={styles.errorText}>{errors.lastName}</Text> : null}
                     </View>
                   </View>
 
@@ -241,34 +189,11 @@ export default function SignUp() {
                     {/* Date of Birth */}
                     <View style={styles.columnContainer}>
                       <Text style={styles.label}>Date of Birth</Text>
-                      <TouchableOpacity
-                        style={[
-                          styles.input,
-                          styles.datePickerButton,
-                          touched.dateOfBirth && errors.dateOfBirth
-                            ? styles.inputError
-                            : null,
-                        ]}
-                        onPress={() => setShowDatePicker(true)}
-                      >
-                        <Text
-                          style={
-                            values.dateOfBirth
-                              ? styles.dateText
-                              : styles.placeholderText
-                          }
-                        >
-                          {values.dateOfBirth
-                            ? values.dateOfBirth
-                            : "Select date"}
-                        </Text>
+                      <TouchableOpacity style={[styles.input, styles.datePickerButton, touched.dateOfBirth && errors.dateOfBirth ? styles.inputError : null]} onPress={() => setShowDatePicker(true)}>
+                        <Text style={values.dateOfBirth ? styles.dateText : styles.placeholderText}>{values.dateOfBirth ? values.dateOfBirth : "Select date"}</Text>
                         <Ionicons name="calendar" size={20} color="#808080" />
                       </TouchableOpacity>
-                      {touched.dateOfBirth && errors.dateOfBirth ? (
-                        <Text style={styles.errorText}>
-                          {errors.dateOfBirth}
-                        </Text>
-                      ) : null}
+                      {touched.dateOfBirth && errors.dateOfBirth ? <Text style={styles.errorText}>{errors.dateOfBirth}</Text> : null}
 
                       {/* Date Picker for iOS */}
                       {Platform.OS === "ios" && showDatePicker && (
@@ -314,33 +239,11 @@ export default function SignUp() {
                       <Text style={styles.label}>Gender</Text>
                       <View style={styles.dropdownContainer}>
                         <TouchableOpacity
-                          style={[
-                            styles.input,
-                            styles.selectContainer,
-                            touched.gender && errors.gender
-                              ? styles.inputError
-                              : null,
-                          ]}
-                          onPress={() =>
-                            setShowGenderDropdown(!showGenderDropdown)
-                          }
+                          style={[styles.input, styles.selectContainer, touched.gender && errors.gender ? styles.inputError : null]}
+                          onPress={() => setShowGenderDropdown(!showGenderDropdown)}
                         >
-                          <Text
-                            style={
-                              values.gender
-                                ? styles.dateText
-                                : styles.placeholderText
-                            }
-                          >
-                            {values.gender || "Select gender"}
-                          </Text>
-                          <Ionicons
-                            name={
-                              showGenderDropdown ? "chevron-up" : "chevron-down"
-                            }
-                            size={20}
-                            color="#808080"
-                          />
+                          <Text style={values.gender ? styles.dateText : styles.placeholderText}>{values.gender || "Select gender"}</Text>
+                          <Ionicons name={showGenderDropdown ? "chevron-up" : "chevron-down"} size={20} color="#808080" />
                         </TouchableOpacity>
 
                         {showGenderDropdown && (
@@ -354,40 +257,21 @@ export default function SignUp() {
                                   setShowGenderDropdown(false);
                                 }}
                               >
-                                <Text
-                                  style={[
-                                    styles.dropdownItemText,
-                                    values.gender === item.value &&
-                                      styles.selectedItemText,
-                                  ]}
-                                >
-                                  {item.label}
-                                </Text>
-                                {values.gender === item.value && (
-                                  <Ionicons
-                                    name="checkmark"
-                                    size={16}
-                                    color="#3F63C7"
-                                  />
-                                )}
+                                <Text style={[styles.dropdownItemText, values.gender === item.value && styles.selectedItemText]}>{item.label}</Text>
+                                {values.gender === item.value && <Ionicons name="checkmark" size={16} color="#3F63C7" />}
                               </TouchableOpacity>
                             ))}
                           </View>
                         )}
                       </View>
-                      {touched.gender && errors.gender ? (
-                        <Text style={styles.errorText}>{errors.gender}</Text>
-                      ) : null}
+                      {touched.gender && errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
                     </View>
                   </View>
 
                   {/* Email */}
                   <Text style={[styles.label, { marginTop: 16 }]}>Email</Text>
                   <TextInput
-                    style={[
-                      styles.input,
-                      touched.email && errors.email ? styles.inputError : null,
-                    ]}
+                    style={[styles.input, touched.email && errors.email ? styles.inputError : null]}
                     placeholder="Email"
                     value={values.email}
                     onChangeText={handleChange("email")}
@@ -395,45 +279,27 @@ export default function SignUp() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-                  {touched.email && errors.email ? (
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  ) : null}
+                  {touched.email && errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
                   {/* Phone Number */}
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Phone Number
-                  </Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>Phone Number</Text>
                   <View style={styles.phoneContainer}>
-                    <TextInput
-                      style={[
-                        styles.phoneInput,
-                        touched.phone && errors.phone
-                          ? styles.inputError
-                          : null,
-                      ]}
-                      placeholder="Phone number"
+                    <MaskInput
+                      style={[styles.input, touched.phone && errors.phone ? styles.inputError : null]}
                       value={values.phone}
-                      onChangeText={handleChange("phone")}
-                      onBlur={handleBlur("phone")}
+                      onChangeText={(masked, unmasked) => {
+                        setFieldValue("phone", unmasked);
+                      }}
+                      mask={TEN_DIGIT_MASK}
                       keyboardType="phone-pad"
+                      placeholder="Phone number"
                     />
                   </View>
-                  {touched.phone && errors.phone ? (
-                    <Text style={styles.errorText}>{errors.phone}</Text>
-                  ) : null}
+                  {touched.phone && errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
 
                   {/* Password */}
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Password
-                  </Text>
-                  <View
-                    style={[
-                      styles.passwordContainer,
-                      touched.password && errors.password
-                        ? styles.inputError
-                        : null,
-                    ]}
-                  >
+                  <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
+                  <View style={[styles.passwordContainer, touched.password && errors.password ? styles.inputError : null]}>
                     <TextInput
                       style={styles.passwordInput}
                       placeholder="Password"
@@ -443,32 +309,15 @@ export default function SignUp() {
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                     />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                    >
-                      <Ionicons
-                        name={showPassword ? "eye" : "eye-off"}
-                        size={24}
-                        color="#808080"
-                      />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons name={showPassword ? "eye" : "eye-off"} size={24} color="#808080" />
                     </TouchableOpacity>
                   </View>
-                  {touched.password && errors.password ? (
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  ) : null}
+                  {touched.password && errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
                   {/* Confirm Password */}
-                  <Text style={[styles.label, { marginTop: 16 }]}>
-                    Confirm Password
-                  </Text>
-                  <View
-                    style={[
-                      styles.passwordContainer,
-                      touched.confirmPassword && errors.confirmPassword
-                        ? styles.inputError
-                        : null,
-                    ]}
-                  >
+                  <Text style={[styles.label, { marginTop: 16 }]}>Confirm Password</Text>
+                  <View style={[styles.passwordContainer, touched.confirmPassword && errors.confirmPassword ? styles.inputError : null]}>
                     <TextInput
                       style={styles.passwordInput}
                       placeholder="Confirm Password"
@@ -478,40 +327,18 @@ export default function SignUp() {
                       secureTextEntry={!showConfirmPassword}
                       autoCapitalize="none"
                     />
-                    <TouchableOpacity
-                      onPress={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                    >
-                      <Ionicons
-                        name={showConfirmPassword ? "eye" : "eye-off"}
-                        size={24}
-                        color="#808080"
-                      />
+                    <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                      <Ionicons name={showConfirmPassword ? "eye" : "eye-off"} size={24} color="#808080" />
                     </TouchableOpacity>
                   </View>
-                  {touched.confirmPassword && errors.confirmPassword ? (
-                    <Text style={styles.errorText}>
-                      {errors.confirmPassword}
-                    </Text>
-                  ) : null}
+                  {touched.confirmPassword && errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
 
-                  <TouchableOpacity
-                    style={styles.registerButton}
-                    onPress={() => handleSubmit()}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.registerButtonText}>Register</Text>
-                    )}
+                  <TouchableOpacity style={styles.registerButton} onPress={() => handleSubmit()} disabled={isLoading}>
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.registerButtonText}>Register</Text>}
                   </TouchableOpacity>
 
                   <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                      Already have an account?
-                    </Text>
+                    <Text style={styles.footerText}>Already have an account?</Text>
                     <TouchableOpacity onPress={() => router.push("/login")}>
                       <Text style={styles.signupText}>Log in</Text>
                     </TouchableOpacity>
@@ -579,6 +406,7 @@ const styles = StyleSheet.create({
   input: {
     height: 48,
     borderWidth: 1,
+    width: "100%",
     borderColor: "#dedede",
     borderRadius: 10,
     paddingHorizontal: 12,
@@ -605,6 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
     backgroundColor: "#ffffff",
+    width: "100%",
   },
   passwordContainer: {
     flexDirection: "row",

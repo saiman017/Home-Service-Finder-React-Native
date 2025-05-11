@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   button: {
-    backgroundColor: "#3F63C7", // Using the blue color you specified
+    backgroundColor: "#3F63C7",
     paddingVertical: 20,
     paddingHorizontal: 50,
     borderRadius: 15,

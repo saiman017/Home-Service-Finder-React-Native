@@ -130,36 +130,6 @@ export const getRequestsByCustomerId = createAsyncThunk("serviceRequest/getByCus
   }
 });
 
-// Get active requests by customer ID
-// export const getActiveRequestsByCustomerId = createAsyncThunk(
-//   "serviceRequest/getActiveByCustomer",
-//   async (customerId: string, { rejectWithValue, dispatch }) => {
-//     try {
-//       const response = await getAxiosInstance().get(
-//         `/serviceRequest/customer/${customerId}/active`
-//       );
-//       if (!response.data.success || response.data.code >= 400) {
-//         const errorMessage =
-//           response.data.data ||
-//           response.data.message ||
-//           "Failed to fetch active customer requests";
-//         dispatch(setMessage({ data: errorMessage }));
-//         return rejectWithValue(errorMessage);
-//       }
-
-//       return response.data.data;
-//     } catch (error: any) {
-//       const message =
-//         error.response?.data?.data ||
-//         error.response?.data?.message ||
-//         error.message ||
-//         "Failed to fetch active customer requests";
-
-//       dispatch(setMessage({ data: message }));
-//       return rejectWithValue(message);
-//     }
-//   }
-// );
 export const getActiveRequestsByCustomerId = createAsyncThunk("serviceRequest/getActiveByCustomerId", async (customerId: string, { rejectWithValue }) => {
   try {
     const response = await getAxiosInstance().get(`/serviceRequest/customer/${customerId}/active`);

@@ -73,7 +73,7 @@ const getAxiosInstance = () => {
     async (config) => {
       console.log("Making request to:", config.url);
 
-      const publicEndpoints = ["/auth/login", "/auth/register", "/auth/verify-otp", "/auth/refresh", "/serviceCategory"];
+      const publicEndpoints = ["/auth/login", "/users", "/OTP/verify", "/OTP/resend", "/serviceProvider", "/auth/verify-otp", "/auth/refresh", "/serviceCategory"];
 
       if (publicEndpoints.some((endpoint) => config.url?.includes(endpoint))) {
         return config;
